@@ -6,6 +6,7 @@ import { createParticleSystem } from './particles.js';
 import { createStarfield }      from './starfield.js';
 import { renderHUD }            from './hud.js';
 import { easterEggs }           from './easter-eggs.js';
+import { audio }               from './audio.js';
 
 const STATE = { TITLE: 'title', PLAYING: 'playing', PAUSED: 'paused', GAME_OVER: 'game_over' };
 
@@ -196,9 +197,11 @@ export function createGame(canvas) {
 
       if (input.wasPressed('Space')) {
         bullets.fire(player.x, player.y - player.height / 2);
+        audio.shoot();
       }
 
       formation.update(dt, player.x);
+      if (formation.wasDiveLaunched()) audio.diverLaunch();
       bullets.update(dt);
 
       // Collision: bullets vs. enemies (formation + divers)
@@ -216,8 +219,10 @@ export function createGame(canvas) {
               score += CONFIG.SCORE_NAT20_BONUS;
               particles.burst(enemy.x, enemy.y, CONFIG.COLOR_BANNER); // second burst
               addNotification('NAT 20!', enemy.x, enemy.y, CONFIG.COLOR_BANNER);
+              audio.nat20();
             } else {
               score += CONFIG.SCORE_PER_ENEMY;
+              audio.enemyKill();
             }
           }
         } else {
@@ -227,6 +232,7 @@ export function createGame(canvas) {
           if (Math.random() < CONFIG.CRIT_CHANCE) {
             particles.burst(enemy.x, enemy.y, CONFIG.COLOR_CRIT, CONFIG.CRIT_PARTICLE_COUNT);
             addNotification(`+${CONFIG.CRIT_SCORE} CRIT!`, enemy.x, enemy.y, CONFIG.COLOR_CRIT);
+            audio.critHit();
             score += CONFIG.CRIT_SCORE;
             for (const adj of formation.getEnemyRects()) {
               const dx = adj.x - enemy.x;
@@ -238,6 +244,7 @@ export function createGame(canvas) {
               }
             }
           } else {
+            audio.enemyKill();
             score += CONFIG.SCORE_PER_ENEMY;
           }
         }
@@ -245,6 +252,7 @@ export function createGame(canvas) {
 
       // Wave cleared
       if (formation.allDead()) {
+        audio.waveClear();
         spawnNextWave();
         return;
       }
@@ -255,6 +263,7 @@ export function createGame(canvas) {
         if (rectsOverlap(d.x - d.hw, d.y - d.hh, d.hw * 2, d.hh * 2, phb.x, phb.y, phb.w, phb.h)) {
           formation.kill(d.ref);
           particles.burst(d.x, d.y, CONFIG.COLOR_DIVER);
+          audio.playerHit();
           lives--;
           if (lives <= 0) state = STATE.GAME_OVER;
           break; // one hit per frame

@@ -35,7 +35,8 @@ export function createFormation(wave) {
   const actualY = e => e.baseY;
 
   const divers  = [];
-  let diveTimer = CONFIG.DIVE_INTERVAL + (Math.random() * 2 - 1) * CONFIG.DIVE_INTERVAL_VARIANCE;
+  let diveTimer        = CONFIG.DIVE_INTERVAL + (Math.random() * 2 - 1) * CONFIG.DIVE_INTERVAL_VARIANCE;
+  let newDiveLaunched  = false;
 
   function nextDiveTimer() {
     return CONFIG.DIVE_INTERVAL + (Math.random() * 2 - 1) * CONFIG.DIVE_INTERVAL_VARIANCE;
@@ -60,7 +61,8 @@ export function createFormation(wave) {
       state:   'DIVING',
     });
 
-    diveTimer = nextDiveTimer();
+    diveTimer       = nextDiveTimer();
+    newDiveLaunched = true;
   }
 
   // Returns true when the diver should be removed from divers[].
@@ -144,8 +146,11 @@ export function createFormation(wave) {
 
     allDead() { return base.every(e => !e.alive); },
 
+    wasDiveLaunched() { return newDiveLaunched; },
+
     // playerX: player's current x, used to aim new dives.
     update(dt, playerX) {
+      newDiveLaunched = false;
       const live = base.filter(e => e.alive);
       if (live.length === 0) return;
 
