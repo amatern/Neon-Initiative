@@ -62,6 +62,13 @@ export const CONFIG = {
   SCORE_NAT20_BONUS: 2000,
   STARTING_LIVES: 3,
 
+  // Critical hits (normal mode only)
+  COLOR_CRIT: '#ffffff',
+  CRIT_CHANCE: 0.02,
+  CRIT_RADIUS: 90,
+  CRIT_SCORE: 300,
+  CRIT_PARTICLE_COUNT: 32,
+
   // Wave banner
   WAVE_BANNER_DURATION: 2200,
 

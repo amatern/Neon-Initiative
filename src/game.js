@@ -177,7 +177,23 @@ export function createGame(canvas) {
         } else {
           formation.kill(enemy.ref);
           particles.burst(enemy.x, enemy.y, CONFIG.COLOR_ENEMY);
-          score += CONFIG.SCORE_PER_ENEMY;
+
+          if (Math.random() < CONFIG.CRIT_CHANCE) {
+            particles.burst(enemy.x, enemy.y, CONFIG.COLOR_CRIT, CONFIG.CRIT_PARTICLE_COUNT);
+            addNotification(`+${CONFIG.CRIT_SCORE} CRIT!`, enemy.x, enemy.y, CONFIG.COLOR_CRIT);
+            score += CONFIG.CRIT_SCORE;
+            for (const adj of formation.getEnemyRects()) {
+              const dx = adj.x - enemy.x;
+              const dy = adj.y - enemy.y;
+              if (Math.sqrt(dx * dx + dy * dy) <= CONFIG.CRIT_RADIUS) {
+                formation.kill(adj.ref);
+                particles.burst(adj.x, adj.y, CONFIG.COLOR_CRIT, 8);
+                score += CONFIG.SCORE_PER_ENEMY;
+              }
+            }
+          } else {
+            score += CONFIG.SCORE_PER_ENEMY;
+          }
         }
       }
 
