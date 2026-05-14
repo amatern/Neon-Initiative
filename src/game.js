@@ -7,7 +7,7 @@ import { createStarfield }      from './starfield.js';
 import { renderHUD }            from './hud.js';
 import { easterEggs }           from './easter-eggs.js';
 
-const STATE = { TITLE: 'title', PLAYING: 'playing', GAME_OVER: 'game_over' };
+const STATE = { TITLE: 'title', PLAYING: 'playing', PAUSED: 'paused', GAME_OVER: 'game_over' };
 
 function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
   return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
@@ -28,6 +28,7 @@ export function createGame(canvas) {
   let wave      = 1;
   let formation = null;
   let banner    = null;
+  let pauseTip  = null;
 
   function makeBanner(text) {
     const duration = CONFIG.WAVE_BANNER_DURATION / 1000;
@@ -85,8 +86,42 @@ export function createGame(canvas) {
     ctx.globalAlpha = 1;
     ctx.font        = '15px monospace';
     ctx.fillStyle   = 'rgba(255,255,255,0.45)';
-    ctx.fillText('← → to move   ■ SPACE to fire', CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2 + 130);
+    ctx.fillText('← → to move   SPACE to fire   P to pause', CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2 + 130);
 
+    ctx.restore();
+  }
+
+  function renderPause() {
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+    ctx.textAlign = 'center';
+
+    if (pauseTip) {
+      ctx.font        = 'bold 16px monospace';
+      ctx.fillStyle   = CONFIG.COLOR_BANNER;
+      ctx.shadowBlur  = 8;
+      ctx.shadowColor = CONFIG.COLOR_BANNER;
+      ctx.fillText('DM TIP:', CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2 - 30);
+      ctx.font        = '18px monospace';
+      ctx.fillStyle   = '#ffffff';
+      ctx.shadowBlur  = 6;
+      ctx.shadowColor = '#ffffff';
+      ctx.fillText(pauseTip, CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2 + 10);
+    } else {
+      ctx.font        = 'bold 48px monospace';
+      ctx.fillStyle   = CONFIG.COLOR_HUD;
+      ctx.shadowBlur  = 18;
+      ctx.shadowColor = CONFIG.COLOR_HUD;
+      ctx.fillText('PAUSED', CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2);
+    }
+
+    const pulse     = 0.65 + 0.35 * Math.sin(Date.now() / 420);
+    ctx.globalAlpha = pulse;
+    ctx.font        = '16px monospace';
+    ctx.fillStyle   = '#ffffff';
+    ctx.shadowBlur  = 0;
+    ctx.fillText('PRESS P TO RESUME', CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2 + 60);
     ctx.restore();
   }
 
@@ -145,7 +180,18 @@ export function createGame(canvas) {
         return;
       }
 
+      if (state === STATE.PAUSED) {
+        if (input.wasPressed('KeyP')) state = STATE.PLAYING;
+        return;
+      }
+
       // ── STATE.PLAYING ──────────────────────────────────────────────────
+      if (input.wasPressed('KeyP')) {
+        state    = STATE.PAUSED;
+        pauseTip = easterEggs.getPauseTip();
+        return;
+      }
+
       player.update(dt, input);
 
       if (input.wasPressed('Space')) {
@@ -249,6 +295,10 @@ export function createGame(canvas) {
       }
 
       renderHUD(ctx, { score, lives, wave, banner, chadActive: easterEggs.chadActive });
+
+      if (state === STATE.PAUSED) {
+        renderPause();
+      }
 
       if (state === STATE.GAME_OVER) {
         ctx.fillStyle = 'rgba(0,0,0,0.55)';
