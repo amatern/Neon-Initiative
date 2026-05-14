@@ -49,6 +49,7 @@ export const CONFIG = {
   DIVE_ACCEL: 180,
   DIVE_MAX_SPEED: 380,
   DIVE_MAX_VX: 200,
+  DIVE_LOOP_Y: 530,        // y threshold to start loop-back (must be past player hitbox ~527)
   DIVE_STEER: 1.5,
   DIVE_WOBBLE_AMP: 18,
   DIVE_WOBBLE_SPEED: 5.0,

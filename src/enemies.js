@@ -76,7 +76,7 @@ export function createFormation(wave) {
         d.phase  += CONFIG.DIVE_WOBBLE_SPEED * dt;
         d.x       = d.trackX + Math.sin(d.phase) * CONFIG.DIVE_WOBBLE_AMP;
 
-        if (d.y > CONFIG.CANVAS_HEIGHT * 0.78) d.state = 'LOOPING';
+        if (d.y > CONFIG.DIVE_LOOP_Y) d.state = 'LOOPING';
         break;
 
       case 'LOOPING':
