@@ -336,8 +336,7 @@ export function createGame(canvas) {
       // Diver → player collision
       for (const d of formation.getDiverRects()) {
         if (rectsOverlap(d.x - d.hw, d.y - d.hh, d.hw * 2, d.hh * 2, phb.x, phb.y, phb.w, phb.h)) {
-          formation.kill(d.ref);
-          particles.burst(d.x, d.y, CONFIG.COLOR_DIVER);
+          if (formation.kill(d.ref)) particles.burst(d.x, d.y, CONFIG.COLOR_DIVER);
           audio.playerHit();
           lives--;
           if (lives <= 0) triggerGameOver();

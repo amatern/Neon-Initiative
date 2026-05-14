@@ -89,7 +89,8 @@ export const CONFIG = {
   WAVE_BANNER_DURATION: 2200,
 
   // Seal waves
-  SEAL_BANNER_DURATION: 4500,  // ms — longer than normal banner to read 2 lines
+  SEAL_BANNER_DURATION:   4500, // ms — longer than normal banner to read 2 lines
+  DECOY_FLASH_DURATION:   0.25, // seconds — white flash on decoy hit
 
   // Particles
   PARTICLE_COUNT: 14,

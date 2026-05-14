@@ -153,7 +153,7 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
 
     kill(ref) {
       if (ref.isDecoy) {
-        ref.flashTimer = 0.25;
+        ref.flashTimer = CONFIG.DECOY_FLASH_DURATION;
         return false;  // decoy: flash but survive
       }
       ref.alive  = false;
@@ -163,7 +163,7 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
       return true;   // actually killed
     },
 
-    allDead() { return base.every(e => !e.alive); },
+    allDead() { return base.every(e => !e.alive || e.isDecoy); },
 
     wasDiveLaunched() { return newDiveLaunched; },
 
@@ -217,7 +217,7 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
         ctx.globalAlpha = 1;
         // Decoy hit flash
         if (e.flashTimer > 0) {
-          ctx.globalAlpha = e.flashTimer / 0.25;
+          ctx.globalAlpha = e.flashTimer / CONFIG.DECOY_FLASH_DURATION;
           ctx.fillStyle   = '#ffffff';
           ctx.shadowBlur  = 0;
           ctx.fill();
