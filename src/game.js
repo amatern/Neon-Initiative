@@ -8,7 +8,7 @@ import { createStarfield }      from './starfield.js';
 import { renderHUD }            from './hud.js';
 import { easterEggs }           from './easter-eggs.js';
 import { audio }               from './audio.js';
-import { getSealData, isSealWave } from './seal-waves.js';
+import { createSealWave, getSealData, isSealWave } from './seal-waves.js';
 
 const STATE = { TITLE: 'title', PLAYING: 'playing', PAUSED: 'paused', GAME_OVER: 'game_over' };
 
@@ -81,7 +81,13 @@ export function createGame(canvas) {
     wave++;
     const isBoss = wave % 5 === 0;
     const seal   = isSealWave(wave) ? getSealData(wave) : null;
-    formation = isBoss ? createBossWave(wave, enemyBullets) : createFormation(wave);
+    if (isBoss) {
+      formation = createBossWave(wave, enemyBullets);
+    } else if (seal) {
+      formation = createSealWave(wave, enemyBullets);
+    } else {
+      formation = createFormation(wave);
+    }
     bullets.clear();
     enemyBullets.clear();
     if (seal) {
