@@ -25,13 +25,15 @@ export function createGame(canvas) {
   const enemyBullets  = createEnemyBulletPool();
   const notifications = [];
 
-  let state     = STATE.TITLE;
-  let score     = 0;
-  let lives     = CONFIG.STARTING_LIVES;
-  let wave      = 1;
-  let formation = null;
-  let banner    = null;
-  let pauseTip  = null;
+  let state          = STATE.TITLE;
+  let score          = 0;
+  let lives          = CONFIG.STARTING_LIVES;
+  let wave           = 1;
+  let formation      = null;
+  let banner         = null;
+  let pauseTip       = null;
+  let highScore      = parseInt(localStorage.getItem('neon-initiative-hs') || '0', 10);
+  let newBest        = false;
 
   function makeBanner(text) {
     const duration = CONFIG.WAVE_BANNER_DURATION / 1000;
@@ -42,11 +44,21 @@ export function createGame(canvas) {
     notifications.push({ text, x, y, vy: -60, color, timer: 1.5, maxTimer: 1.5 });
   }
 
+  function triggerGameOver() {
+    if (score > highScore) {
+      highScore = score;
+      localStorage.setItem('neon-initiative-hs', String(highScore));
+      newBest = true;
+    }
+    state = STATE.GAME_OVER;
+  }
+
   function startGame() {
     state     = STATE.PLAYING;
     score     = 0;
     lives     = CONFIG.STARTING_LIVES;
     wave      = 1;
+    newBest   = false;
     formation = createFormation(wave);
     bullets.clear();
     enemyBullets.clear();
@@ -147,12 +159,25 @@ export function createGame(canvas) {
     ctx.shadowColor = '#00f0ff';
     ctx.fillText(`FINAL SCORE: ${score}`, CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2 + 40);
 
+    if (newBest) {
+      ctx.font        = 'bold 22px monospace';
+      ctx.fillStyle   = CONFIG.COLOR_BANNER;
+      ctx.shadowBlur  = 14;
+      ctx.shadowColor = CONFIG.COLOR_BANNER;
+      ctx.fillText('NEW BEST!', CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2 + 72);
+    } else if (highScore > 0) {
+      ctx.font        = '16px monospace';
+      ctx.fillStyle   = 'rgba(0,240,255,0.55)';
+      ctx.shadowBlur  = 0;
+      ctx.fillText(`BEST: ${highScore}`, CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2 + 72);
+    }
+
     const pulse     = 0.65 + 0.35 * Math.sin(Date.now() / 420);
     ctx.globalAlpha = pulse;
     ctx.font        = '19px monospace';
     ctx.fillStyle   = '#ffffff';
     ctx.shadowBlur  = 0;
-    ctx.fillText('PRESS R TO RETURN TO TITLE', CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2 + 92);
+    ctx.fillText('PRESS R TO RETURN TO TITLE', CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2 + 108);
 
     ctx.restore();
   }
@@ -268,7 +293,7 @@ export function createGame(canvas) {
       if (enemyBullets.checkPlayerCollision(phb)) {
         audio.playerHit();
         lives--;
-        if (lives <= 0) state = STATE.GAME_OVER;
+        if (lives <= 0) triggerGameOver();
       }
 
       // Diver → player collision
@@ -278,7 +303,7 @@ export function createGame(canvas) {
           particles.burst(d.x, d.y, CONFIG.COLOR_DIVER);
           audio.playerHit();
           lives--;
-          if (lives <= 0) state = STATE.GAME_OVER;
+          if (lives <= 0) triggerGameOver();
           break; // one hit per frame
         }
       }
@@ -317,7 +342,7 @@ export function createGame(canvas) {
         ctx.restore();
       }
 
-      renderHUD(ctx, { score, lives, wave, banner, chadActive: easterEggs.chadActive });
+      renderHUD(ctx, { score, lives, wave, banner, chadActive: easterEggs.chadActive, highScore });
 
       if (state === STATE.PAUSED) {
         renderPause();

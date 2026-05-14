@@ -23,7 +23,7 @@ function drawD20Icon(ctx, x, y) {
 }
 
 // banner: null | { text, timer, duration }  (timer in seconds, counts down)
-export function renderHUD(ctx, { score, lives, wave, banner, chadActive }) {
+export function renderHUD(ctx, { score, lives, wave, banner, chadActive, highScore }) {
   ctx.save();
 
   ctx.font        = 'bold 18px monospace';
@@ -34,6 +34,17 @@ export function renderHUD(ctx, { score, lives, wave, banner, chadActive }) {
   // Score — top left
   ctx.textAlign = 'left';
   ctx.fillText(`SCORE: ${score}`, 20, 28);
+
+  // Best score — below score, dim
+  if (highScore > 0) {
+    ctx.font       = '12px monospace';
+    ctx.fillStyle  = 'rgba(0,240,255,0.4)';
+    ctx.shadowBlur = 0;
+    ctx.fillText(`BEST: ${highScore}`, 20, 46);
+    ctx.font       = 'bold 18px monospace';
+    ctx.fillStyle  = CONFIG.COLOR_HUD;
+    ctx.shadowBlur = 8;
+  }
 
   // D20 icon — shown when CHAD mode is active, right of score text
   if (chadActive) {
