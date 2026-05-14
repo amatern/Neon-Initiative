@@ -58,7 +58,7 @@ export function createGame(canvas) {
 
   function spawnNextWave() {
     wave++;
-    const isBoss = wave % 10 === 0;
+    const isBoss = wave % 5 === 0;
     formation = isBoss ? createBossWave(wave, enemyBullets) : createFormation(wave);
     bullets.clear();
     enemyBullets.clear();
