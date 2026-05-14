@@ -11,12 +11,12 @@ function drawHexagon(ctx, x, y, size) {
   ctx.closePath();
 }
 
-export function createFormation(wave) {
+export function createFormation(wave, rows = CONFIG.ENEMY_ROWS) {
   const formationWidth = (CONFIG.ENEMY_COLS - 1) * CONFIG.ENEMY_SPACING_X;
   const startX         = (CONFIG.CANVAS_WIDTH - formationWidth) / 2;
 
   const base = [];
-  for (let row = 0; row < CONFIG.ENEMY_ROWS; row++) {
+  for (let row = 0; row < rows; row++) {
     for (let col = 0; col < CONFIG.ENEMY_COLS; col++) {
       base.push({
         baseX:  startX + col * CONFIG.ENEMY_SPACING_X,

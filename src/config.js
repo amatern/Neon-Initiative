@@ -68,6 +68,16 @@ export const CONFIG = {
   ENEMY_BULLET_HEIGHT: 12,
   ENEMY_BULLET_GLOW: 8,
 
+  // Beholder boss
+  COLOR_BEHOLDER:       '#cc44ff',
+  COLOR_BEHOLDER_EYE:   '#ff44ff',
+  BEHOLDER_RADIUS:       70,
+  BEHOLDER_EYE_RADIUS:   12,
+  BEHOLDER_STALK_LENGTH: 30,
+  BEHOLDER_DESCENT_SPEED: 30,
+  BEHOLDER_REST_Y:       130,
+  BEHOLDER_SCORE_PER_EYE: 500,
+
   // Critical hits (normal mode only)
   COLOR_CRIT: '#ffffff',
   CRIT_CHANCE: 0.05,

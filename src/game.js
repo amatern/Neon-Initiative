@@ -1,6 +1,7 @@
 import { CONFIG }               from './config.js';
 import { createPlayer }         from './player.js';
 import { createFormation }      from './enemies.js';
+import { createBossWave }       from './beholder.js';
 import { createBulletPool, createEnemyBulletPool } from './bullets.js';
 import { createParticleSystem } from './particles.js';
 import { createStarfield }      from './starfield.js';
@@ -57,10 +58,11 @@ export function createGame(canvas) {
 
   function spawnNextWave() {
     wave++;
-    formation = createFormation(wave);
+    const isBoss = wave % 10 === 0;
+    formation = isBoss ? createBossWave(wave, enemyBullets) : createFormation(wave);
     bullets.clear();
     enemyBullets.clear();
-    banner = makeBanner('Roll for initiative!');
+    banner = makeBanner(isBoss ? 'A Beholder materializes...' : 'Roll for initiative!');
     easterEggs.onWaveStart(wave);
   }
 
@@ -203,10 +205,10 @@ export function createGame(canvas) {
         audio.shoot();
       }
 
-      formation.update(dt, player.x);
+      formation.update(dt, player.x, player.y);
       if (formation.wasDiveLaunched()) audio.diverLaunch();
       bullets.update(dt);
-      enemyBullets.update(dt);
+      enemyBullets.update(dt, player.x);
 
       // Collision: bullets vs. enemies (formation + divers)
       const hits = bullets.checkCollisions(formation.getEnemyRects());
@@ -218,20 +220,20 @@ export function createGame(canvas) {
             addNotification('NAT 1', enemy.x, enemy.y, '#888888');
           } else {
             formation.kill(enemy.ref);
-            particles.burst(enemy.x, enemy.y, CONFIG.COLOR_ENEMY);
+            particles.burst(enemy.x, enemy.y, enemy.color || CONFIG.COLOR_ENEMY);
             if (roll === 20) {
               score += CONFIG.SCORE_NAT20_BONUS;
               particles.burst(enemy.x, enemy.y, CONFIG.COLOR_BANNER); // second burst
               addNotification('NAT 20!', enemy.x, enemy.y, CONFIG.COLOR_BANNER);
               audio.nat20();
             } else {
-              score += CONFIG.SCORE_PER_ENEMY;
+              score += enemy.score || CONFIG.SCORE_PER_ENEMY;
               audio.enemyKill();
             }
           }
         } else {
           formation.kill(enemy.ref);
-          particles.burst(enemy.x, enemy.y, CONFIG.COLOR_ENEMY);
+          particles.burst(enemy.x, enemy.y, enemy.color || CONFIG.COLOR_ENEMY);
 
           if (Math.random() < CONFIG.CRIT_CHANCE) {
             particles.burst(enemy.x, enemy.y, CONFIG.COLOR_CRIT, CONFIG.CRIT_PARTICLE_COUNT);
@@ -244,12 +246,12 @@ export function createGame(canvas) {
               if (Math.sqrt(dx * dx + dy * dy) <= CONFIG.CRIT_RADIUS) {
                 formation.kill(adj.ref);
                 particles.burst(adj.x, adj.y, CONFIG.COLOR_CRIT, 8);
-                score += CONFIG.SCORE_PER_ENEMY;
+                score += adj.score || CONFIG.SCORE_PER_ENEMY;
               }
             }
           } else {
             audio.enemyKill();
-            score += CONFIG.SCORE_PER_ENEMY;
+            score += enemy.score || CONFIG.SCORE_PER_ENEMY;
           }
         }
       }

@@ -69,16 +69,30 @@ export function createEnemyBulletPool() {
   const bullets = [];
 
   return {
-    // vx/vy in pixels-per-second — supports any direction for Beholder eye patterns
-    fire(x, y, vx, vy) {
-      bullets.push({ x, y, vx, vy });
+    // type: 'normal' | 'homing' | 'bouncing'
+    // bounces: remaining wall reflections (bouncing type only)
+    fire(x, y, vx, vy, type = 'normal', bounces = 2) {
+      bullets.push({ x, y, vx, vy, type, bounces });
     },
 
-    update(dt) {
+    update(dt, playerX = undefined) {
       for (let i = bullets.length - 1; i >= 0; i--) {
         const b = bullets[i];
+
+        if (b.type === 'homing' && playerX !== undefined) {
+          b.vx += (playerX - b.x) * 80 * dt;
+          b.vx  = Math.max(-150, Math.min(150, b.vx));
+        }
+
         b.x += b.vx * dt;
         b.y += b.vy * dt;
+
+        if (b.type === 'bouncing') {
+          if (b.x <= 0 && b.vx < 0) { b.x = 0; b.vx = -b.vx; b.bounces--; }
+          if (b.x >= CONFIG.CANVAS_WIDTH && b.vx > 0) { b.x = CONFIG.CANVAS_WIDTH; b.vx = -b.vx; b.bounces--; }
+          if (b.bounces <= 0) b.type = 'normal';
+        }
+
         if (b.y > CONFIG.CANVAS_HEIGHT + 20 || b.y < -20 ||
             b.x < -20 || b.x > CONFIG.CANVAS_WIDTH + 20) {
           bullets.splice(i, 1);
