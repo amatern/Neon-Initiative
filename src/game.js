@@ -8,6 +8,7 @@ import { createStarfield }      from './starfield.js';
 import { renderHUD }            from './hud.js';
 import { easterEggs }           from './easter-eggs.js';
 import { audio }               from './audio.js';
+import { getSealData, isSealWave } from './seal-waves.js';
 
 const STATE = { TITLE: 'title', PLAYING: 'playing', PAUSED: 'paused', GAME_OVER: 'game_over' };
 
@@ -34,10 +35,16 @@ export function createGame(canvas) {
   let pauseTip       = null;
   let highScore      = parseInt(localStorage.getItem('neon-initiative-hs') || '0', 10);
   let newBest        = false;
+  let defeatSeal     = null;
 
   function makeBanner(text) {
     const duration = CONFIG.WAVE_BANNER_DURATION / 1000;
     return { text, timer: duration, duration };
+  }
+
+  function makeSealBanner(sealData, type) {
+    const duration = CONFIG.SEAL_BANNER_DURATION / 1000;
+    return { seal: sealData, lines: sealData.narrator[type], timer: duration, duration };
   }
 
   function addNotification(text, x, y, color) {
@@ -50,16 +57,18 @@ export function createGame(canvas) {
       localStorage.setItem('neon-initiative-hs', String(highScore));
       newBest = true;
     }
+    defeatSeal = getSealData(wave);
     state = STATE.GAME_OVER;
   }
 
   function startGame() {
-    state     = STATE.PLAYING;
-    score     = 0;
-    lives     = CONFIG.STARTING_LIVES;
-    wave      = 1;
-    newBest   = false;
-    formation = createFormation(wave);
+    state      = STATE.PLAYING;
+    score      = 0;
+    lives      = CONFIG.STARTING_LIVES;
+    wave       = 1;
+    newBest    = false;
+    defeatSeal = null;
+    formation  = createFormation(wave);
     bullets.clear();
     enemyBullets.clear();
     notifications.length = 0;
@@ -71,10 +80,17 @@ export function createGame(canvas) {
   function spawnNextWave() {
     wave++;
     const isBoss = wave % 5 === 0;
+    const seal   = isSealWave(wave) ? getSealData(wave) : null;
     formation = isBoss ? createBossWave(wave, enemyBullets) : createFormation(wave);
     bullets.clear();
     enemyBullets.clear();
-    banner = makeBanner(isBoss ? 'A Beholder materializes...' : 'Roll for initiative!');
+    if (seal) {
+      banner = makeSealBanner(seal, 'start');
+    } else if (isBoss) {
+      banner = makeBanner('A Beholder materializes...');
+    } else {
+      banner = makeBanner('Roll for initiative!');
+    }
     easterEggs.onWaveStart(wave);
   }
 
@@ -172,12 +188,25 @@ export function createGame(canvas) {
       ctx.fillText(`BEST: ${highScore}`, CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2 + 72);
     }
 
+    if (defeatSeal) {
+      ctx.font        = 'bold 14px monospace';
+      ctx.fillStyle   = defeatSeal.color;
+      ctx.shadowBlur  = 10;
+      ctx.shadowColor = defeatSeal.glow;
+      ctx.fillText(defeatSeal.narrator.defeat[0], CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2 + 92);
+      ctx.font        = '14px monospace';
+      ctx.fillStyle   = 'rgba(255,255,255,0.75)';
+      ctx.shadowBlur  = 0;
+      ctx.fillText(defeatSeal.narrator.defeat[1], CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2 + 112);
+    }
+
     const pulse     = 0.65 + 0.35 * Math.sin(Date.now() / 420);
     ctx.globalAlpha = pulse;
     ctx.font        = '19px monospace';
     ctx.fillStyle   = '#ffffff';
     ctx.shadowBlur  = 0;
-    ctx.fillText('PRESS R TO RETURN TO TITLE', CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2 + 108);
+    const restartY = defeatSeal ? CONFIG.CANVAS_HEIGHT / 2 + 138 : CONFIG.CANVAS_HEIGHT / 2 + 108;
+    ctx.fillText('PRESS R TO RETURN TO TITLE', CONFIG.CANVAS_WIDTH / 2, restartY);
 
     ctx.restore();
   }
@@ -284,7 +313,10 @@ export function createGame(canvas) {
       // Wave cleared
       if (formation.allDead()) {
         audio.waveClear();
+        const clearedSeal = isSealWave(wave) ? getSealData(wave) : null;
         spawnNextWave();
+        // Override next wave's start banner with victory line if a seal was just cleared
+        if (clearedSeal) banner = makeSealBanner(clearedSeal, 'victory');
         return;
       }
 

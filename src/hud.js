@@ -79,12 +79,32 @@ export function renderHUD(ctx, { score, lives, wave, banner, chadActive, highSco
     const fadeThreshold = banner.duration * 0.3;
     const alpha         = banner.timer < fadeThreshold ? banner.timer / fadeThreshold : 1;
     ctx.globalAlpha = alpha;
-    ctx.font        = 'bold 40px monospace';
-    ctx.fillStyle   = CONFIG.COLOR_BANNER;
-    ctx.shadowBlur  = 22;
-    ctx.shadowColor = CONFIG.COLOR_BANNER;
     ctx.textAlign   = 'center';
-    ctx.fillText(banner.text, CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 3);
+
+    if (banner.seal) {
+      // Two-line seal banner
+      ctx.font        = 'bold 28px monospace';
+      ctx.fillStyle   = banner.seal.color;
+      ctx.shadowBlur  = 18;
+      ctx.shadowColor = banner.seal.glow;
+      ctx.fillText(banner.seal.name, CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 3 - 20);
+
+      ctx.font        = '17px monospace';
+      ctx.fillStyle   = '#ffffff';
+      ctx.shadowBlur  = 6;
+      ctx.shadowColor = '#ffffff';
+      ctx.fillText(banner.lines[0], CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 3 + 16);
+      ctx.fillText(banner.lines[1], CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 3 + 40);
+    } else {
+      // Normal banner
+      ctx.font        = 'bold 40px monospace';
+      ctx.fillStyle   = CONFIG.COLOR_BANNER;
+      ctx.shadowBlur  = 22;
+      ctx.shadowColor = CONFIG.COLOR_BANNER;
+      ctx.fillText(banner.text, CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 3);
+    }
+
+    ctx.globalAlpha = 1;
   }
 
   ctx.restore();

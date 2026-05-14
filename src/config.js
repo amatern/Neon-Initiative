@@ -88,6 +88,9 @@ export const CONFIG = {
   // Wave banner
   WAVE_BANNER_DURATION: 2200,
 
+  // Seal waves
+  SEAL_BANNER_DURATION: 4500,  // ms — longer than normal banner to read 2 lines
+
   // Particles
   PARTICLE_COUNT: 14,
   PARTICLE_SPEED_MIN: 60,
