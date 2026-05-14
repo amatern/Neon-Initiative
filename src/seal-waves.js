@@ -1,5 +1,3 @@
-import { CONFIG } from './config.js';
-
 export const SEAL_DATA = {
   3: {
     name:    'SEAL OF FIRE',
