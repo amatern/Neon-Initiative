@@ -64,7 +64,7 @@ export const CONFIG = {
 
   // Critical hits (normal mode only)
   COLOR_CRIT: '#ffffff',
-  CRIT_CHANCE: 0.5,
+  CRIT_CHANCE: 0.05,
   CRIT_RADIUS: 90,
   CRIT_SCORE: 300,
   CRIT_PARTICLE_COUNT: 32,
