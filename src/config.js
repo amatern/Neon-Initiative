@@ -96,6 +96,14 @@ export const CONFIG = {
   SEAL_STORM_GUST_INTERVAL_MAX: 12,
   SEAL_STORM_GUST_STRENGTH:     90,   // pixels pushed over gust duration
   SEAL_STORM_GUST_DURATION:     1.4,  // seconds
+  SEAL_DAWN_TERROR_INTERVAL:  8,    // seconds between terror pulses
+  SEAL_DAWN_TERROR_DURATION:  2,    // seconds fire is locked
+  SEAL_DAWN_ACID_COUNT:       3,    // acid pools per wave
+  SEAL_DAWN_ACID_RADIUS:      36,   // pixels
+  SEAL_DAWN_ACID_LIFETIME:    10,   // seconds before pool refreshes
+  SEAL_DAWN_CORRUPT_START:    25,   // seconds before corruption starts
+  SEAL_DAWN_CORRUPT_MAX:      0.35, // maximum overlay alpha
+  SEAL_DAWN_CORRUPT_DURATION: 60,   // seconds to reach max corruption
 
   // Particles
   PARTICLE_COUNT: 14,

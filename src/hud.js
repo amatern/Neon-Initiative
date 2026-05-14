@@ -23,7 +23,7 @@ function drawD20Icon(ctx, x, y) {
 }
 
 // banner: null | { text, timer, duration }  (timer in seconds, counts down)
-export function renderHUD(ctx, { score, lives, wave, banner, chadActive, highScore, gustActive }) {
+export function renderHUD(ctx, { score, lives, wave, banner, chadActive, highScore, gustActive, terrorActive }) {
   ctx.save();
 
   ctx.font        = 'bold 18px monospace';
@@ -122,6 +122,19 @@ export function renderHUD(ctx, { score, lives, wave, banner, chadActive, highSco
       ctx.lineTo(CONFIG.CANVAS_WIDTH, y);
       ctx.stroke();
     }
+    ctx.restore();
+  }
+
+  if (terrorActive) {
+    ctx.save();
+    const tp        = 0.7 + 0.3 * Math.sin(Date.now() / 80);
+    ctx.globalAlpha = tp;
+    ctx.font        = 'bold 22px monospace';
+    ctx.fillStyle   = '#ff2200';
+    ctx.shadowBlur  = 14;
+    ctx.shadowColor = '#ff2200';
+    ctx.textAlign   = 'center';
+    ctx.fillText('TERROR', CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT - 40);
     ctx.restore();
   }
 

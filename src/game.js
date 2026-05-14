@@ -34,8 +34,9 @@ export function createGame(canvas) {
   let banner         = null;
   let pauseTip       = null;
   let highScore      = parseInt(localStorage.getItem('neon-initiative-hs') || '0', 10);
-  let newBest        = false;
-  let defeatSeal     = null;
+  let newBest            = false;
+  let defeatSeal         = null;
+  let invincibilityTimer = 0;
 
   function makeBanner(text) {
     const duration = CONFIG.WAVE_BANNER_DURATION / 1000;
@@ -62,13 +63,14 @@ export function createGame(canvas) {
   }
 
   function startGame() {
-    state      = STATE.PLAYING;
-    score      = 0;
-    lives      = CONFIG.STARTING_LIVES;
-    wave       = 1;
-    newBest    = false;
-    defeatSeal = null;
-    formation  = createFormation(wave);
+    state              = STATE.PLAYING;
+    score              = 0;
+    lives              = CONFIG.STARTING_LIVES;
+    wave               = 1;
+    newBest            = false;
+    defeatSeal         = null;
+    invincibilityTimer = 0;
+    formation          = createFormation(wave);
     bullets.clear();
     enemyBullets.clear();
     notifications.length = 0;
@@ -258,11 +260,16 @@ export function createGame(canvas) {
         return;
       }
 
+      if (invincibilityTimer > 0) invincibilityTimer -= dt;
+
       player.update(dt, input);
 
       if (input.wasPressed('Space')) {
-        bullets.fire(player.x, player.y - player.height / 2);
-        audio.shoot();
+        const dawnRef = formation.getMechanics?.();
+        if (!dawnRef?.terrorActive) {
+          bullets.fire(player.x, player.y - player.height / 2);
+          audio.shoot();
+        }
       }
 
       formation.update(dt, player.x, player.y);
@@ -338,20 +345,43 @@ export function createGame(canvas) {
 
       // Enemy bullet → player collision
       const phb = player.getHitbox();
-      if (enemyBullets.checkPlayerCollision(phb)) {
+      if (invincibilityTimer <= 0 && enemyBullets.checkPlayerCollision(phb)) {
         audio.playerHit();
         lives--;
+        invincibilityTimer = 1.5;
         if (lives <= 0) triggerGameOver();
       }
 
       // Diver → player collision
-      for (const d of formation.getDiverRects()) {
-        if (rectsOverlap(d.x - d.hw, d.y - d.hh, d.hw * 2, d.hh * 2, phb.x, phb.y, phb.w, phb.h)) {
-          if (formation.kill(d.ref)) particles.burst(d.x, d.y, CONFIG.COLOR_DIVER);
-          audio.playerHit();
-          lives--;
-          if (lives <= 0) triggerGameOver();
-          break; // one hit per frame
+      if (invincibilityTimer <= 0) {
+        for (const d of formation.getDiverRects()) {
+          if (rectsOverlap(d.x - d.hw, d.y - d.hh, d.hw * 2, d.hh * 2, phb.x, phb.y, phb.w, phb.h)) {
+            if (formation.kill(d.ref)) particles.burst(d.x, d.y, CONFIG.COLOR_DIVER);
+            audio.playerHit();
+            lives--;
+            invincibilityTimer = 1.5;
+            if (lives <= 0) triggerGameOver();
+            break; // one hit per frame
+          }
+        }
+      }
+
+      // Acid pool → player collision (Dawn seal)
+      if (invincibilityTimer <= 0) {
+        const dawnMech = formation.getMechanics?.();
+        if (dawnMech?.acidPools) {
+          const phbCenter = { x: phb.x + phb.w / 2, y: phb.y + phb.h / 2 };
+          for (const pool of dawnMech.acidPools) {
+            const dx = phbCenter.x - pool.x;
+            const dy = phbCenter.y - pool.y;
+            if (Math.sqrt(dx * dx + dy * dy) < CONFIG.SEAL_DAWN_ACID_RADIUS) {
+              audio.playerHit();
+              lives--;
+              invincibilityTimer = 1.5;
+              if (lives <= 0) { triggerGameOver(); return; }
+              break;
+            }
+          }
         }
       }
     },
@@ -389,9 +419,10 @@ export function createGame(canvas) {
         ctx.restore();
       }
 
-      const mechRef    = formation.getMechanics?.();
-      const gustActive = mechRef?.gustActive ?? false;
-      renderHUD(ctx, { score, lives, wave, banner, chadActive: easterEggs.chadActive, highScore, gustActive });
+      const mechRef      = formation.getMechanics?.();
+      const gustActive   = mechRef?.gustActive   ?? false;
+      const terrorActive = mechRef?.terrorActive ?? false;
+      renderHUD(ctx, { score, lives, wave, banner, chadActive: easterEggs.chadActive, highScore, gustActive, terrorActive });
 
       if (state === STATE.PAUSED) {
         renderPause();

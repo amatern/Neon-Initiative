@@ -225,7 +225,89 @@ function createStormMechanics() {
 }
 
 function createDawnMechanics() {
-  return { update() {}, render() {} };
+  let terrorTimer     = CONFIG.SEAL_DAWN_TERROR_INTERVAL;
+  let terrorActive    = false;
+  let terrorRemaining = 0;
+  let elapsedTime     = 0;
+  let corruptionAlpha = 0;
+
+  function makePool() {
+    return {
+      x:     CONFIG.ENEMY_EDGE_PADDING + Math.random() * (CONFIG.CANVAS_WIDTH - CONFIG.ENEMY_EDGE_PADDING * 2),
+      y:     CONFIG.CANVAS_HEIGHT * 0.55 + Math.random() * (CONFIG.CANVAS_HEIGHT * 0.3),
+      timer: CONFIG.SEAL_DAWN_ACID_LIFETIME,
+    };
+  }
+
+  const acidPools = Array.from({ length: CONFIG.SEAL_DAWN_ACID_COUNT }, makePool);
+
+  return {
+    get terrorActive()    { return terrorActive; },
+    get corruptionAlpha() { return corruptionAlpha; },
+    get acidPools()       { return acidPools; },
+
+    update(dt) {
+      elapsedTime += dt;
+
+      // Terror pulse
+      if (terrorActive) {
+        terrorRemaining -= dt;
+        if (terrorRemaining <= 0) terrorActive = false;
+      } else {
+        terrorTimer -= dt;
+        if (terrorTimer <= 0) {
+          terrorActive    = true;
+          terrorRemaining = CONFIG.SEAL_DAWN_TERROR_DURATION;
+          terrorTimer     = CONFIG.SEAL_DAWN_TERROR_INTERVAL;
+        }
+      }
+
+      // Corruption ramp
+      if (elapsedTime > CONFIG.SEAL_DAWN_CORRUPT_START) {
+        const progress = Math.min(
+          1,
+          (elapsedTime - CONFIG.SEAL_DAWN_CORRUPT_START) / CONFIG.SEAL_DAWN_CORRUPT_DURATION
+        );
+        corruptionAlpha = CONFIG.SEAL_DAWN_CORRUPT_MAX * progress;
+      }
+
+      // Acid pool refresh
+      for (let i = 0; i < acidPools.length; i++) {
+        acidPools[i].timer -= dt;
+        if (acidPools[i].timer <= 0) acidPools[i] = makePool();
+      }
+    },
+
+    render(ctx) {
+      // Corruption overlay
+      if (corruptionAlpha > 0) {
+        ctx.save();
+        ctx.globalAlpha = corruptionAlpha;
+        ctx.fillStyle   = '#001a00';
+        ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+        ctx.restore();
+      }
+
+      // Acid pools
+      ctx.save();
+      for (const pool of acidPools) {
+        const fadeRatio  = pool.timer / CONFIG.SEAL_DAWN_ACID_LIFETIME;
+        ctx.globalAlpha  = 0.35 * fadeRatio;
+        ctx.fillStyle    = '#00ff44';
+        ctx.shadowBlur   = 18;
+        ctx.shadowColor  = '#00ff44';
+        ctx.beginPath();
+        ctx.arc(pool.x, pool.y, CONFIG.SEAL_DAWN_ACID_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha  = 0.6 * fadeRatio;
+        ctx.strokeStyle  = '#00ff44';
+        ctx.lineWidth    = 2;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    },
+  };
 }
 
 function createShadowMechanics() {
