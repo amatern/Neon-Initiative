@@ -138,7 +138,7 @@ export function createSealWave(wave, enemyBullets) {
   const mechanics = createSealMechanics(wave, inner, enemyBullets);
 
   let _playerX = CONFIG.CANVAS_WIDTH / 2;
-  let _playerY = CONFIG.CANVAS_HEIGHT - 60;
+  let _playerY = CONFIG.CANVAS_HEIGHT - CONFIG.PLAYER_START_Y_OFFSET;
 
   return {
     update(dt, playerX, playerY) {
