@@ -198,7 +198,7 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
       }
     },
 
-    render(ctx) {
+    render(ctx, playerX = undefined, playerY = undefined) {
       ctx.save();
 
       // Formation enemies
@@ -211,7 +211,7 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
         if (!e.alive || e.diving) continue;
         drawEnemy(ctx, actualX(e), actualY(e), CONFIG.ENEMY_SIZE);
         ctx.stroke();
-        ctx.globalAlpha = 0.12;
+        ctx.globalAlpha = e.isDecoy ? 0.06 : 0.12;
         ctx.fillStyle   = COL_ENEMY;
         ctx.fill();
         ctx.globalAlpha = 1;
@@ -231,6 +231,14 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
       ctx.shadowColor = COL_DIVER;
 
       for (const d of divers) {
+        // Cloak: invisible beyond 120px, fade in 80–120px
+        if (opts.cloakDivers && playerX !== undefined) {
+          const dx   = d.x - playerX;
+          const dy   = d.y - (playerY ?? CONFIG.CANVAS_HEIGHT - CONFIG.PLAYER_START_Y_OFFSET);
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > 120) continue;
+          if (dist > 80) ctx.globalAlpha = (120 - dist) / 40;
+        }
         drawEnemy(ctx, d.x, d.y, CONFIG.ENEMY_SIZE);
         ctx.stroke();
         ctx.globalAlpha = 0.22;

@@ -128,7 +128,7 @@ export function createSealWave(wave, enemyBullets) {
     8:  { cols: 10, rows: 5, swayBase: CONFIG.ENEMY_SWAY_BASE * 1.2,  colorEnemy: '#0077cc', colorDiver: '#44aaff', drawEnemy: DRAW[8]  },
     13: { cols: 7,  rows: 3, swayBase: CONFIG.ENEMY_SWAY_BASE * 2.0,  colorEnemy: '#ffdd00', colorDiver: '#aaeeff', drawEnemy: DRAW[13], diveMaxSpeed: CONFIG.DIVE_MAX_SPEED * 1.4 },
     18: { cols: 8,  rows: 4, swayBase: CONFIG.ENEMY_SWAY_BASE,        colorEnemy: '#ffd700', colorDiver: '#ffffff', drawEnemy: DRAW[18] },
-    23: { cols: 8,  rows: 4, swayBase: CONFIG.ENEMY_SWAY_BASE * 0.8,  colorEnemy: '#aa44ff', colorDiver: '#00ff88', drawEnemy: DRAW[23], decoyChance: 0.5 },
+    23: { cols: 8,  rows: 4, swayBase: CONFIG.ENEMY_SWAY_BASE * 0.8,  colorEnemy: '#aa44ff', colorDiver: '#00ff88', drawEnemy: DRAW[23], decoyChance: 0.5, cloakDivers: true },
   };
 
   const opts  = FORMATION_OPTS[wave];
@@ -156,7 +156,7 @@ export function createSealWave(wave, enemyBullets) {
       return killed;
     },
     allDead()          { return inner.allDead(); },
-    render(ctx)        { inner.render(ctx); mechanics.render(ctx); },
+    render(ctx)        { inner.render(ctx, _playerX, _playerY); mechanics.render(ctx); },
 
     getMechanics()     { return mechanics; },
   };
