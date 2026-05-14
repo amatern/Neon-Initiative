@@ -234,7 +234,7 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
         // Cloak: invisible beyond 120px, fade in 80–120px
         if (opts.cloakDivers && playerX !== undefined) {
           const dx   = d.x - playerX;
-          const dy   = d.y - (playerY ?? CONFIG.CANVAS_HEIGHT - CONFIG.PLAYER_START_Y_OFFSET);
+          const dy   = d.y - (playerY ?? (CONFIG.CANVAS_HEIGHT - CONFIG.PLAYER_START_Y_OFFSET));
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist > 120) continue;
           if (dist > 80) ctx.globalAlpha = (120 - dist) / 40;
