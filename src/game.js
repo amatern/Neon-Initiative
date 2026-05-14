@@ -9,13 +9,18 @@ import { easterEggs }           from './easter-eggs.js';
 
 const STATE = { TITLE: 'title', PLAYING: 'playing', GAME_OVER: 'game_over' };
 
+function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+  return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+}
+
 export function createGame(canvas) {
   const ctx = canvas.getContext('2d');
 
-  const starfield = createStarfield();
-  const particles = createParticleSystem();
-  const player    = createPlayer();
-  const bullets   = createBulletPool();
+  const starfield     = createStarfield();
+  const particles     = createParticleSystem();
+  const player        = createPlayer();
+  const bullets       = createBulletPool();
+  const notifications = [];
 
   let state     = STATE.TITLE;
   let score     = 0;
@@ -29,6 +34,10 @@ export function createGame(canvas) {
     return { text, timer: duration, duration };
   }
 
+  function addNotification(text, x, y, color) {
+    notifications.push({ text, x, y, vy: -60, color, timer: 1.5, maxTimer: 1.5 });
+  }
+
   function startGame() {
     state     = STATE.PLAYING;
     score     = 0;
@@ -36,8 +45,10 @@ export function createGame(canvas) {
     wave      = 1;
     formation = createFormation(wave);
     bullets.clear();
+    notifications.length = 0;
     banner = makeBanner('Roll for initiative!');
     easterEggs.onWaveStart(wave);
+    if (easterEggs.jonasActive) player.setColor(CONFIG.COLOR_JONAS);
   }
 
   function spawnNextWave() {
@@ -115,9 +126,16 @@ export function createGame(canvas) {
         if (banner.timer <= 0) banner = null;
       }
 
-      easterEggs.checkTitleScreenCode(input);
+      // Notifications float upward and fade
+      for (let i = notifications.length - 1; i >= 0; i--) {
+        const n = notifications[i];
+        n.y     += n.vy * dt;
+        n.timer -= dt;
+        if (n.timer <= 0) notifications.splice(i, 1);
+      }
 
       if (state === STATE.TITLE) {
+        easterEggs.checkTitleScreenCode(); // only active on title screen
         if (input.wasPressed('Space')) startGame();
         return;
       }
@@ -134,15 +152,33 @@ export function createGame(canvas) {
         bullets.fire(player.x, player.y - player.height / 2);
       }
 
-      formation.update(dt);
+      formation.update(dt, player.x);
       bullets.update(dt);
 
-      // Collision: bullets vs. enemies
+      // Collision: bullets vs. enemies (formation + divers)
       const hits = bullets.checkCollisions(formation.getEnemyRects());
       for (const { enemy } of hits) {
-        formation.kill(enemy.ref);
-        particles.burst(enemy.x, enemy.y, CONFIG.COLOR_ENEMY);
-        score += CONFIG.SCORE_PER_ENEMY;
+        if (easterEggs.chadActive) {
+          const { roll } = easterEggs.rollForHit();
+          if (roll === 1) {
+            // Nat 1: shot fizzles — bullet consumed but enemy survives
+            addNotification('NAT 1', enemy.x, enemy.y, '#888888');
+          } else {
+            formation.kill(enemy.ref);
+            particles.burst(enemy.x, enemy.y, CONFIG.COLOR_ENEMY);
+            if (roll === 20) {
+              score += CONFIG.SCORE_NAT20_BONUS;
+              particles.burst(enemy.x, enemy.y, CONFIG.COLOR_BANNER); // second burst
+              addNotification('NAT 20!', enemy.x, enemy.y, CONFIG.COLOR_BANNER);
+            } else {
+              score += CONFIG.SCORE_PER_ENEMY;
+            }
+          }
+        } else {
+          formation.kill(enemy.ref);
+          particles.burst(enemy.x, enemy.y, CONFIG.COLOR_ENEMY);
+          score += CONFIG.SCORE_PER_ENEMY;
+        }
       }
 
       // Wave cleared
@@ -151,14 +187,15 @@ export function createGame(canvas) {
         return;
       }
 
-      // Enemies reached the bottom → lose a life
-      if (formation.getEnemyRects().some(e => e.y + e.hh > CONFIG.ENEMY_DEATH_LINE)) {
-        lives--;
-        if (lives <= 0) {
-          state = STATE.GAME_OVER;
-        } else {
-          formation = createFormation(wave);
-          bullets.clear();
+      // Diver → player collision
+      const phb = player.getHitbox();
+      for (const d of formation.getDiverRects()) {
+        if (rectsOverlap(d.x - d.hw, d.y - d.hh, d.hw * 2, d.hh * 2, phb.x, phb.y, phb.w, phb.h)) {
+          formation.kill(d.ref);
+          particles.burst(d.x, d.y, CONFIG.COLOR_DIVER);
+          lives--;
+          if (lives <= 0) state = STATE.GAME_OVER;
+          break; // one hit per frame
         }
       }
     },
@@ -179,7 +216,23 @@ export function createGame(canvas) {
       player.render(ctx);
       bullets.render(ctx);
       particles.render(ctx);
-      renderHUD(ctx, { score, lives, wave, banner });
+
+      // Floating NAT roll notifications
+      if (notifications.length > 0) {
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.font      = 'bold 20px monospace';
+        for (const n of notifications) {
+          ctx.globalAlpha = n.timer / n.maxTimer;
+          ctx.fillStyle   = n.color;
+          ctx.shadowBlur  = 10;
+          ctx.shadowColor = n.color;
+          ctx.fillText(n.text, n.x, n.y);
+        }
+        ctx.restore();
+      }
+
+      renderHUD(ctx, { score, lives, wave, banner, chadActive: easterEggs.chadActive });
 
       if (state === STATE.GAME_OVER) {
         ctx.fillStyle = 'rgba(0,0,0,0.55)';
