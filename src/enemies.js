@@ -11,25 +11,39 @@ function drawHexagon(ctx, x, y, size) {
   ctx.closePath();
 }
 
-export function createFormation(wave, rows = CONFIG.ENEMY_ROWS) {
-  const formationWidth = (CONFIG.ENEMY_COLS - 1) * CONFIG.ENEMY_SPACING_X;
+export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
+  const COLS       = opts.cols          ?? CONFIG.ENEMY_COLS;
+  const SPACING_X  = opts.spacingX      ?? CONFIG.ENEMY_SPACING_X;
+  const SPACING_Y  = opts.spacingY      ?? CONFIG.ENEMY_SPACING_Y;
+  const TOP_MARGIN = opts.topMargin     ?? CONFIG.ENEMY_TOP_MARGIN;
+  const SWAY_BASE  = opts.swayBase      ?? CONFIG.ENEMY_SWAY_BASE;
+  const SWAY_INC   = opts.swayIncrement ?? CONFIG.ENEMY_SWAY_INCREMENT;
+  const DIVE_SPD   = opts.diveMaxSpeed  ?? CONFIG.DIVE_MAX_SPEED;
+  const drawEnemy  = opts.drawEnemy     ?? drawHexagon;
+  const COL_ENEMY  = opts.colorEnemy    ?? CONFIG.COLOR_ENEMY;
+  const COL_DIVER  = opts.colorDiver    ?? CONFIG.COLOR_DIVER;
+  const DECOY_CHANCE = opts.decoyChance ?? 0;
+
+  const formationWidth = (COLS - 1) * SPACING_X;
   const startX         = (CONFIG.CANVAS_WIDTH - formationWidth) / 2;
 
   const base = [];
   for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < CONFIG.ENEMY_COLS; col++) {
+    for (let col = 0; col < COLS; col++) {
       base.push({
-        baseX:  startX + col * CONFIG.ENEMY_SPACING_X,
-        baseY:  CONFIG.ENEMY_TOP_MARGIN + row * CONFIG.ENEMY_SPACING_Y,
-        alive:  true,
-        diving: false,
+        baseX:    startX + col * SPACING_X,
+        baseY:    TOP_MARGIN + row * SPACING_Y,
+        alive:    true,
+        diving:   false,
+        isDecoy:  Math.random() < DECOY_CHANCE,
+        flashTimer: 0,
       });
     }
   }
 
   let groupOffsetX = 0;
   let dir          = 1;
-  const swaySpeed  = CONFIG.ENEMY_SWAY_BASE + (wave - 1) * CONFIG.ENEMY_SWAY_INCREMENT;
+  const swaySpeed  = SWAY_BASE + (wave - 1) * SWAY_INC;
 
   const actualX = e => e.baseX + groupOffsetX;
   const actualY = e => e.baseY;
@@ -70,7 +84,7 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS) {
     switch (d.state) {
       case 'DIVING':
         d.vy     += CONFIG.DIVE_ACCEL * dt;
-        d.vy      = Math.min(d.vy, CONFIG.DIVE_MAX_SPEED);
+        d.vy      = Math.min(d.vy, DIVE_SPD);
         d.vx     += (d.targetX - d.trackX) * CONFIG.DIVE_STEER * dt;
         d.vx      = Math.max(-CONFIG.DIVE_MAX_VX, Math.min(CONFIG.DIVE_MAX_VX, d.vx));
         d.trackX += d.vx * dt;
@@ -138,10 +152,15 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS) {
     },
 
     kill(ref) {
+      if (ref.isDecoy) {
+        ref.flashTimer = 0.25;
+        return false;  // decoy: flash but survive
+      }
       ref.alive  = false;
       ref.diving = false;
       const idx = divers.findIndex(d => d.ref === ref);
       if (idx !== -1) divers.splice(idx, 1);
+      return true;   // actually killed
     },
 
     allDead() { return base.every(e => !e.alive); },
@@ -164,6 +183,11 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS) {
         if (dir === -1 && leftmost  - CONFIG.ENEMY_SIZE <= CONFIG.ENEMY_EDGE_PADDING)                       dir =  1;
       }
 
+      // Count down decoy flash timers
+      for (const e of base) {
+        if (e.flashTimer > 0) e.flashTimer -= dt;
+      }
+
       // Dive launch
       diveTimer -= dt;
       if (diveTimer <= 0) launchDive(playerX);
@@ -178,30 +202,39 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS) {
       ctx.save();
 
       // Formation enemies
-      ctx.strokeStyle = CONFIG.COLOR_ENEMY;
+      ctx.strokeStyle = COL_ENEMY;
       ctx.lineWidth   = 2;
       ctx.shadowBlur  = CONFIG.ENEMY_GLOW;
-      ctx.shadowColor = CONFIG.COLOR_ENEMY;
+      ctx.shadowColor = COL_ENEMY;
 
       for (const e of base) {
         if (!e.alive || e.diving) continue;
-        drawHexagon(ctx, actualX(e), actualY(e), CONFIG.ENEMY_SIZE);
+        drawEnemy(ctx, actualX(e), actualY(e), CONFIG.ENEMY_SIZE);
         ctx.stroke();
         ctx.globalAlpha = 0.12;
-        ctx.fillStyle   = CONFIG.COLOR_ENEMY;
+        ctx.fillStyle   = COL_ENEMY;
         ctx.fill();
         ctx.globalAlpha = 1;
+        // Decoy hit flash
+        if (e.flashTimer > 0) {
+          ctx.globalAlpha = e.flashTimer / 0.25;
+          ctx.fillStyle   = '#ffffff';
+          ctx.shadowBlur  = 0;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          ctx.shadowBlur  = CONFIG.ENEMY_GLOW;
+        }
       }
 
       // Divers — distinct color to signal "this one is coming for you"
-      ctx.strokeStyle = CONFIG.COLOR_DIVER;
-      ctx.shadowColor = CONFIG.COLOR_DIVER;
+      ctx.strokeStyle = COL_DIVER;
+      ctx.shadowColor = COL_DIVER;
 
       for (const d of divers) {
-        drawHexagon(ctx, d.x, d.y, CONFIG.ENEMY_SIZE);
+        drawEnemy(ctx, d.x, d.y, CONFIG.ENEMY_SIZE);
         ctx.stroke();
         ctx.globalAlpha = 0.22;
-        ctx.fillStyle   = CONFIG.COLOR_DIVER;
+        ctx.fillStyle   = COL_DIVER;
         ctx.fill();
         ctx.globalAlpha = 1;
       }
