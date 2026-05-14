@@ -23,7 +23,7 @@ function drawD20Icon(ctx, x, y) {
 }
 
 // banner: null | { text, timer, duration }  (timer in seconds, counts down)
-export function renderHUD(ctx, { score, lives, wave, banner, chadActive, highScore }) {
+export function renderHUD(ctx, { score, lives, wave, banner, chadActive, highScore, gustActive }) {
   ctx.save();
 
   ctx.font        = 'bold 18px monospace';
@@ -105,6 +105,24 @@ export function renderHUD(ctx, { score, lives, wave, banner, chadActive, highSco
     }
 
     ctx.globalAlpha = 1;
+  }
+
+  // Gust warning — subtle horizontal lines
+  if (gustActive) {
+    ctx.save();
+    ctx.globalAlpha  = 0.35;
+    ctx.strokeStyle  = '#aaeeff';
+    ctx.lineWidth    = 1;
+    ctx.shadowBlur   = 4;
+    ctx.shadowColor  = '#aaeeff';
+    for (let i = 0; i < 5; i++) {
+      const y = 80 + i * 110;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(CONFIG.CANVAS_WIDTH, y);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   ctx.restore();

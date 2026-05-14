@@ -196,7 +196,32 @@ function createDeepMechanics(formation) {
 }
 
 function createStormMechanics() {
-  return { update() {}, render() {} };
+  let gustTimer    = CONFIG.SEAL_STORM_GUST_INTERVAL_MIN +
+                     Math.random() * (CONFIG.SEAL_STORM_GUST_INTERVAL_MAX - CONFIG.SEAL_STORM_GUST_INTERVAL_MIN);
+  let gustRemaining = 0;
+  let gustDir       = 1;
+
+  return {
+    update(dt) {
+      gustTimer -= dt;
+      if (gustTimer <= 0 && gustRemaining <= 0) {
+        gustRemaining = CONFIG.SEAL_STORM_GUST_DURATION;
+        gustDir       = Math.random() < 0.5 ? 1 : -1;
+        gustTimer     = CONFIG.SEAL_STORM_GUST_INTERVAL_MIN +
+                        Math.random() * (CONFIG.SEAL_STORM_GUST_INTERVAL_MAX - CONFIG.SEAL_STORM_GUST_INTERVAL_MIN);
+      }
+      if (gustRemaining > 0) gustRemaining -= dt;
+    },
+
+    render() {},
+
+    getGustDelta(dt) {
+      if (gustRemaining <= 0) return 0;
+      return gustDir * (CONFIG.SEAL_STORM_GUST_STRENGTH / CONFIG.SEAL_STORM_GUST_DURATION) * dt;
+    },
+
+    get gustActive() { return gustRemaining > 0; },
+  };
 }
 
 function createDawnMechanics() {

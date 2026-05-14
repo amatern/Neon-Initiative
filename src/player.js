@@ -46,5 +46,9 @@ export function createPlayer() {
     },
 
     setColor(color) { s.color = color; },
+
+    nudge(dx) {
+      s.x = Math.max(s.width / 2, Math.min(CONFIG.CANVAS_WIDTH - s.width / 2, s.x + dx));
+    },
   };
 }

@@ -266,6 +266,11 @@ export function createGame(canvas) {
       }
 
       formation.update(dt, player.x, player.y);
+      const mech = formation.getMechanics?.();
+      if (mech?.getGustDelta) {
+        const delta = mech.getGustDelta(dt);
+        if (delta !== 0) player.nudge(delta);
+      }
       if (formation.wasDiveLaunched()) audio.diverLaunch();
       bullets.update(dt);
       enemyBullets.update(dt, player.x);
@@ -384,7 +389,9 @@ export function createGame(canvas) {
         ctx.restore();
       }
 
-      renderHUD(ctx, { score, lives, wave, banner, chadActive: easterEggs.chadActive, highScore });
+      const mechRef    = formation.getMechanics?.();
+      const gustActive = mechRef?.gustActive ?? false;
+      renderHUD(ctx, { score, lives, wave, banner, chadActive: easterEggs.chadActive, highScore, gustActive });
 
       if (state === STATE.PAUSED) {
         renderPause();

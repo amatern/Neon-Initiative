@@ -92,6 +92,10 @@ export const CONFIG = {
   SEAL_BANNER_DURATION:   4500, // ms — longer than normal banner to read 2 lines
   DECOY_FLASH_DURATION:   0.25, // seconds — white flash on decoy hit
   SEAL_DEEP_RESPAWN_DELAY: 18,  // seconds before a killed enemy revives
+  SEAL_STORM_GUST_INTERVAL_MIN: 7,    // seconds between gusts
+  SEAL_STORM_GUST_INTERVAL_MAX: 12,
+  SEAL_STORM_GUST_STRENGTH:     90,   // pixels pushed over gust duration
+  SEAL_STORM_GUST_DURATION:     1.4,  // seconds
 
   // Particles
   PARTICLE_COUNT: 14,
