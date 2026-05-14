@@ -140,7 +140,7 @@ function createBeholderCore(enemyBullets) {
       }));
     },
 
-    kill(ref) { ref.alive = false; },
+    kill(ref) { ref.alive = false; return true; },
 
     render(ctx) {
       ctx.save();
@@ -214,8 +214,7 @@ export function createBossWave(wave, enemyBullets) {
     getDiverRects() { return escort.getDiverRects(); },
 
     kill(ref) {
-      if ('pattern' in ref) beholder.kill(ref);
-      else escort.kill(ref);
+      return 'pattern' in ref ? beholder.kill(ref) : escort.kill(ref);
     },
 
     allDead() { return escort.allDead() && beholder.allDead(); },

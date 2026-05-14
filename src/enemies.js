@@ -57,7 +57,7 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
   }
 
   function launchDive(playerX) {
-    const candidates = base.filter(e => e.alive && !e.diving);
+    const candidates = base.filter(e => e.alive && !e.diving && !e.isDecoy);
     if (candidates.length === 0 || divers.length >= CONFIG.DIVE_MAX_SIMULTANEOUS) return;
 
     const ref  = candidates[Math.floor(Math.random() * candidates.length)];
