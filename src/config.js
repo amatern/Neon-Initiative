@@ -91,6 +91,7 @@ export const CONFIG = {
   // Seal waves
   SEAL_BANNER_DURATION:   4500, // ms — longer than normal banner to read 2 lines
   DECOY_FLASH_DURATION:   0.25, // seconds — white flash on decoy hit
+  SEAL_DEEP_RESPAWN_DELAY: 18,  // seconds before a killed enemy revives
 
   // Particles
   PARTICLE_COUNT: 14,

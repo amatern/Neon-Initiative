@@ -150,7 +150,11 @@ export function createSealWave(wave, enemyBullets) {
     wasDiveLaunched()  { return inner.wasDiveLaunched(); },
     getEnemyRects()    { return inner.getEnemyRects(); },
     getDiverRects()    { return inner.getDiverRects(); },
-    kill(ref)          { return inner.kill(ref); },
+    kill(ref) {
+      const killed = inner.kill(ref);
+      if (killed && mechanics.onKill) mechanics.onKill(ref);
+      return killed;
+    },
     allDead()          { return inner.allDead(); },
     render(ctx)        { inner.render(ctx); mechanics.render(ctx); },
 
@@ -158,8 +162,48 @@ export function createSealWave(wave, enemyBullets) {
   };
 }
 
-// Stub — replaced per-seal in Tasks 5–8
 function createSealMechanics(wave, formation, enemyBullets) {
+  switch (wave) {
+    case 8:  return createDeepMechanics(formation);
+    case 13: return createStormMechanics();
+    case 18: return createDawnMechanics();
+    case 23: return createShadowMechanics();
+    default: return { update() {}, render() {} };
+  }
+}
+
+function createDeepMechanics(formation) {
+  const pending = []; // { ref, timer }
+
+  return {
+    onKill(ref) {
+      pending.push({ ref, timer: CONFIG.SEAL_DEEP_RESPAWN_DELAY });
+    },
+
+    update(dt) {
+      for (let i = pending.length - 1; i >= 0; i--) {
+        pending[i].timer -= dt;
+        if (pending[i].timer <= 0) {
+          pending[i].ref.alive  = true;
+          pending[i].ref.diving = false;
+          pending.splice(i, 1);
+        }
+      }
+    },
+
+    render() {},
+  };
+}
+
+function createStormMechanics() {
+  return { update() {}, render() {} };
+}
+
+function createDawnMechanics() {
+  return { update() {}, render() {} };
+}
+
+function createShadowMechanics() {
   return { update() {}, render() {} };
 }
 
