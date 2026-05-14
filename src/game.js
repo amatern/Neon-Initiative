@@ -37,6 +37,7 @@ export function createGame(canvas) {
   let newBest            = false;
   let defeatSeal         = null;
   let invincibilityTimer = 0;
+  let shakeTimer         = 0;
 
   function makeBanner(text) {
     const duration = CONFIG.WAVE_BANNER_DURATION / 1000;
@@ -62,6 +63,16 @@ export function createGame(canvas) {
     state = STATE.GAME_OVER;
   }
 
+  function hitPlayer() {
+    particles.burst(player.x, player.y, player.color, 36);
+    particles.burst(player.x, player.y, '#ffffff', 16);
+    audio.playerHit();
+    shakeTimer = 0.35;
+    lives--;
+    invincibilityTimer = 1.5;
+    if (lives <= 0) triggerGameOver();
+  }
+
   function startGame() {
     state              = STATE.PLAYING;
     score              = 0;
@@ -70,6 +81,7 @@ export function createGame(canvas) {
     newBest            = false;
     defeatSeal         = null;
     invincibilityTimer = 0;
+    shakeTimer         = 0;
     formation          = createFormation(wave);
     bullets.clear();
     enemyBullets.clear();
@@ -261,6 +273,7 @@ export function createGame(canvas) {
       }
 
       if (invincibilityTimer > 0) invincibilityTimer -= dt;
+      if (shakeTimer > 0) shakeTimer = Math.max(0, shakeTimer - dt);
 
       player.update(dt, input);
 
@@ -346,10 +359,7 @@ export function createGame(canvas) {
       // Enemy bullet → player collision
       const phb = player.getHitbox();
       if (invincibilityTimer <= 0 && enemyBullets.checkPlayerCollision(phb)) {
-        audio.playerHit();
-        lives--;
-        invincibilityTimer = 1.5;
-        if (lives <= 0) triggerGameOver();
+        hitPlayer();
       }
 
       // Diver → player collision
@@ -357,10 +367,7 @@ export function createGame(canvas) {
         for (const d of formation.getDiverRects()) {
           if (rectsOverlap(d.x - d.hw, d.y - d.hh, d.hw * 2, d.hh * 2, phb.x, phb.y, phb.w, phb.h)) {
             if (formation.kill(d.ref)) particles.burst(d.x, d.y, CONFIG.COLOR_DIVER);
-            audio.playerHit();
-            lives--;
-            invincibilityTimer = 1.5;
-            if (lives <= 0) triggerGameOver();
+            hitPlayer();
             break; // one hit per frame
           }
         }
@@ -375,10 +382,8 @@ export function createGame(canvas) {
             const dx = phbCenter.x - pool.x;
             const dy = phbCenter.y - pool.y;
             if (Math.sqrt(dx * dx + dy * dy) < CONFIG.SEAL_DAWN_ACID_RADIUS) {
-              audio.playerHit();
-              lives--;
-              invincibilityTimer = 1.5;
-              if (lives <= 0) { triggerGameOver(); return; }
+              hitPlayer();
+              if (lives <= 0) return;
               break;
             }
           }
@@ -398,8 +403,17 @@ export function createGame(canvas) {
         return;
       }
 
+      // World layer — shakes on player hit, player blinks during invincibility
+      ctx.save();
+      if (shakeTimer > 0) {
+        const mag = (shakeTimer / 0.35) * CONFIG.PLAYER_SHAKE_MAG;
+        ctx.translate((Math.random() * 2 - 1) * mag, (Math.random() * 2 - 1) * mag);
+      }
+
       formation.render(ctx);
-      player.render(ctx);
+      if (invincibilityTimer <= 0 || Math.sin(Date.now() / 50) > 0) {
+        player.render(ctx);
+      }
       bullets.render(ctx);
       enemyBullets.render(ctx);
       particles.render(ctx);
@@ -418,6 +432,8 @@ export function createGame(canvas) {
         }
         ctx.restore();
       }
+
+      ctx.restore(); // end world shake
 
       const mechRef      = formation.getMechanics?.();
       const gustActive   = mechRef?.gustActive   ?? false;

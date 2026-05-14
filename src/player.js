@@ -14,6 +14,7 @@ export function createPlayer() {
     get y()      { return s.y; },
     get width()  { return s.width; },
     get height() { return s.height; },
+    get color()  { return s.color; },
 
     update(dt, input) {
       if (input.isDown('ArrowLeft'))  s.x -= CONFIG.PLAYER_SPEED * dt;
