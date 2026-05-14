@@ -1,7 +1,7 @@
 import { CONFIG }               from './config.js';
 import { createPlayer }         from './player.js';
 import { createFormation }      from './enemies.js';
-import { createBulletPool }     from './bullets.js';
+import { createBulletPool, createEnemyBulletPool } from './bullets.js';
 import { createParticleSystem } from './particles.js';
 import { createStarfield }      from './starfield.js';
 import { renderHUD }            from './hud.js';
@@ -21,6 +21,7 @@ export function createGame(canvas) {
   const particles     = createParticleSystem();
   const player        = createPlayer();
   const bullets       = createBulletPool();
+  const enemyBullets  = createEnemyBulletPool();
   const notifications = [];
 
   let state     = STATE.TITLE;
@@ -47,6 +48,7 @@ export function createGame(canvas) {
     wave      = 1;
     formation = createFormation(wave);
     bullets.clear();
+    enemyBullets.clear();
     notifications.length = 0;
     banner = makeBanner('Roll for initiative!');
     easterEggs.onWaveStart(wave);
@@ -57,6 +59,7 @@ export function createGame(canvas) {
     wave++;
     formation = createFormation(wave);
     bullets.clear();
+    enemyBullets.clear();
     banner = makeBanner('Roll for initiative!');
     easterEggs.onWaveStart(wave);
   }
@@ -203,6 +206,7 @@ export function createGame(canvas) {
       formation.update(dt, player.x);
       if (formation.wasDiveLaunched()) audio.diverLaunch();
       bullets.update(dt);
+      enemyBullets.update(dt);
 
       // Collision: bullets vs. enemies (formation + divers)
       const hits = bullets.checkCollisions(formation.getEnemyRects());
@@ -257,8 +261,15 @@ export function createGame(canvas) {
         return;
       }
 
-      // Diver → player collision
+      // Enemy bullet → player collision
       const phb = player.getHitbox();
+      if (enemyBullets.checkPlayerCollision(phb)) {
+        audio.playerHit();
+        lives--;
+        if (lives <= 0) state = STATE.GAME_OVER;
+      }
+
+      // Diver → player collision
       for (const d of formation.getDiverRects()) {
         if (rectsOverlap(d.x - d.hw, d.y - d.hh, d.hw * 2, d.hh * 2, phb.x, phb.y, phb.w, phb.h)) {
           formation.kill(d.ref);
@@ -286,6 +297,7 @@ export function createGame(canvas) {
       formation.render(ctx);
       player.render(ctx);
       bullets.render(ctx);
+      enemyBullets.render(ctx);
       particles.render(ctx);
 
       // Floating NAT roll notifications

@@ -64,3 +64,58 @@ export function createBulletPool() {
     clear() { bullets.length = 0; },
   };
 }
+
+export function createEnemyBulletPool() {
+  const bullets = [];
+
+  return {
+    // vx/vy in pixels-per-second — supports any direction for Beholder eye patterns
+    fire(x, y, vx, vy) {
+      bullets.push({ x, y, vx, vy });
+    },
+
+    update(dt) {
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        if (b.y > CONFIG.CANVAS_HEIGHT + 20 || b.y < -20 ||
+            b.x < -20 || b.x > CONFIG.CANVAS_WIDTH + 20) {
+          bullets.splice(i, 1);
+        }
+      }
+    },
+
+    // Returns true if any bullet hit the player; removes that bullet.
+    checkPlayerCollision(phb) {
+      const hw = CONFIG.ENEMY_BULLET_WIDTH  / 2;
+      const hh = CONFIG.ENEMY_BULLET_HEIGHT / 2;
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        if (aabb(b.x - hw, b.y - hh, hw * 2, hh * 2, phb.x, phb.y, phb.w, phb.h)) {
+          bullets.splice(i, 1);
+          return true;
+        }
+      }
+      return false;
+    },
+
+    render(ctx) {
+      ctx.save();
+      ctx.fillStyle   = CONFIG.COLOR_ENEMY_BULLET;
+      ctx.shadowBlur  = CONFIG.ENEMY_BULLET_GLOW;
+      ctx.shadowColor = CONFIG.COLOR_ENEMY_BULLET;
+      for (const b of bullets) {
+        ctx.fillRect(
+          b.x - CONFIG.ENEMY_BULLET_WIDTH  / 2,
+          b.y - CONFIG.ENEMY_BULLET_HEIGHT / 2,
+          CONFIG.ENEMY_BULLET_WIDTH,
+          CONFIG.ENEMY_BULLET_HEIGHT,
+        );
+      }
+      ctx.restore();
+    },
+
+    clear() { bullets.length = 0; },
+  };
+}
