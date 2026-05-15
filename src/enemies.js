@@ -11,6 +11,58 @@ function drawHexagon(ctx, x, y, size) {
   ctx.closePath();
 }
 
+function drawTriangle(ctx, x, y, s) {
+  ctx.beginPath();
+  ctx.moveTo(x, y - s);
+  ctx.lineTo(x + s * 0.9, y + s * 0.8);
+  ctx.lineTo(x - s * 0.9, y + s * 0.8);
+  ctx.closePath();
+}
+
+function drawDiamond(ctx, x, y, s) {
+  ctx.beginPath();
+  ctx.moveTo(x, y - s);
+  ctx.lineTo(x + s * 0.65, y);
+  ctx.lineTo(x, y + s);
+  ctx.lineTo(x - s * 0.65, y);
+  ctx.closePath();
+}
+
+function drawShield(ctx, x, y, s) {
+  ctx.beginPath();
+  ctx.moveTo(x, y - s);
+  ctx.lineTo(x + s * 0.8,  y - s * 0.25);
+  ctx.lineTo(x + s * 0.55, y + s);
+  ctx.lineTo(x - s * 0.55, y + s);
+  ctx.lineTo(x - s * 0.8,  y - s * 0.25);
+  ctx.closePath();
+}
+
+function drawArrow(ctx, x, y, s) {
+  ctx.beginPath();
+  ctx.moveTo(x - s,        y - s * 0.4);
+  ctx.lineTo(x,            y + s * 0.8);
+  ctx.lineTo(x + s,        y - s * 0.4);
+  ctx.lineTo(x + s * 0.5,  y - s * 0.4);
+  ctx.lineTo(x,            y + s * 0.2);
+  ctx.lineTo(x - s * 0.5,  y - s * 0.4);
+  ctx.closePath();
+}
+
+function drawCross(ctx, x, y, s) {
+  const t = s * 0.35;
+  ctx.beginPath();
+  ctx.moveTo(x - t, y - s); ctx.lineTo(x + t, y - s);
+  ctx.lineTo(x + t, y - t); ctx.lineTo(x + s, y - t);
+  ctx.lineTo(x + s, y + t); ctx.lineTo(x + t, y + t);
+  ctx.lineTo(x + t, y + s); ctx.lineTo(x - t, y + s);
+  ctx.lineTo(x - t, y + t); ctx.lineTo(x - s, y + t);
+  ctx.lineTo(x - s, y - t); ctx.lineTo(x - t, y - t);
+  ctx.closePath();
+}
+
+const NORMAL_SHAPES = [drawHexagon, drawTriangle, drawDiamond, drawShield, drawArrow, drawCross];
+
 export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
   const COLS       = opts.cols          ?? CONFIG.ENEMY_COLS;
   const SPACING_X  = opts.spacingX      ?? CONFIG.ENEMY_SPACING_X;
