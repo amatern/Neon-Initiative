@@ -89,6 +89,15 @@ export const CONFIG = {
   // Wave banner
   WAVE_BANNER_DURATION: 2200,
 
+  // Normal wave color palettes — cycle every 5 waves
+  WAVE_PALETTES: [
+    ['#ff007a', '#ff4444'],   // waves  1– 5: hot pink / red
+    ['#00cfff', '#00ff88'],   // waves  6–10: cyan / mint
+    ['#ffaa00', '#ffd700'],   // waves 11–15: amber / gold
+    ['#aa44ff', '#ff44ff'],   // waves 16–20: purple / violet
+    ['#00f0ff', '#44ffaa'],   // waves 21+:   electric teal
+  ],
+
   // Seal waves
   SEAL_BANNER_DURATION:   4500, // ms — longer than normal banner to read 2 lines
   DECOY_FLASH_DURATION:   0.25, // seconds — white flash on decoy hit
