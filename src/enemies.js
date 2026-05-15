@@ -76,6 +76,11 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
   const COL_DIVER  = opts.colorDiver    ?? CONFIG.COLOR_DIVER;
   const DECOY_CHANCE = opts.decoyChance ?? 0;
 
+  const randomize = !opts.drawEnemy;
+  const palette   = randomize
+    ? CONFIG.WAVE_PALETTES[Math.floor((wave - 1) / 5) % CONFIG.WAVE_PALETTES.length]
+    : null;
+
   const formationWidth = (COLS - 1) * SPACING_X;
   const startX         = (CONFIG.CANVAS_WIDTH - formationWidth) / 2;
 
@@ -83,12 +88,14 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < COLS; col++) {
       base.push({
-        baseX:    startX + col * SPACING_X,
-        baseY:    TOP_MARGIN + row * SPACING_Y,
-        alive:    true,
-        diving:   false,
-        isDecoy:  Math.random() < DECOY_CHANCE,
+        baseX:      startX + col * SPACING_X,
+        baseY:      TOP_MARGIN + row * SPACING_Y,
+        alive:      true,
+        diving:     false,
+        isDecoy:    Math.random() < DECOY_CHANCE,
         flashTimer: 0,
+        draw:       randomize ? NORMAL_SHAPES[Math.floor(Math.random() * NORMAL_SHAPES.length)] : null,
+        color:      randomize ? palette[Math.floor(Math.random() * palette.length)] : null,
       });
     }
   }
@@ -254,17 +261,19 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
       ctx.save();
 
       // Formation enemies
-      ctx.strokeStyle = COL_ENEMY;
-      ctx.lineWidth   = 2;
-      ctx.shadowBlur  = CONFIG.ENEMY_GLOW;
-      ctx.shadowColor = COL_ENEMY;
+      ctx.lineWidth  = 2;
+      ctx.shadowBlur = CONFIG.ENEMY_GLOW;
 
       for (const e of base) {
         if (!e.alive || e.diving) continue;
-        drawEnemy(ctx, actualX(e), actualY(e), CONFIG.ENEMY_SIZE);
+        const col    = e.color ?? COL_ENEMY;
+        const drawFn = e.draw  ?? drawEnemy;
+        ctx.strokeStyle = col;
+        ctx.shadowColor = col;
+        drawFn(ctx, actualX(e), actualY(e), CONFIG.ENEMY_SIZE);
         ctx.stroke();
         ctx.globalAlpha = e.isDecoy ? 0.06 : 0.12;
-        ctx.fillStyle   = COL_ENEMY;
+        ctx.fillStyle   = col;
         ctx.fill();
         ctx.globalAlpha = 1;
         // Decoy hit flash
@@ -278,10 +287,6 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
         }
       }
 
-      // Divers — distinct color to signal "this one is coming for you"
-      ctx.strokeStyle = COL_DIVER;
-      ctx.shadowColor = COL_DIVER;
-
       for (const d of divers) {
         // Cloak: invisible beyond 120px, fade in 80–120px
         if (opts.cloakDivers && playerX !== undefined) {
@@ -291,10 +296,14 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
           if (dist > 120) continue;
           if (dist > 80) ctx.globalAlpha = (120 - dist) / 40;
         }
-        drawEnemy(ctx, d.x, d.y, CONFIG.ENEMY_SIZE);
+        const col    = d.ref.color ?? COL_DIVER;
+        const drawFn = d.ref.draw  ?? drawEnemy;
+        ctx.strokeStyle = col;
+        ctx.shadowColor = col;
+        drawFn(ctx, d.x, d.y, CONFIG.ENEMY_SIZE);
         ctx.stroke();
         ctx.globalAlpha = 0.22;
-        ctx.fillStyle   = COL_DIVER;
+        ctx.fillStyle   = col;
         ctx.fill();
         ctx.globalAlpha = 1;
       }
