@@ -115,6 +115,19 @@ export const CONFIG = {
   SEAL_DAWN_CORRUPT_MAX:      0.35, // maximum overlay alpha
   SEAL_DAWN_CORRUPT_DURATION: 60,   // seconds to reach max corruption
 
+  // Power-ups
+  POWERUP_DROP_CHANCE:          0.15,
+  POWERUP_FALL_SPEED:           80,     // px/s
+  POWERUP_ITEM_LIFETIME:        8,      // seconds before uncollected item disappears
+  POWERUP_PICKUP_RADIUS:        28,     // px from item center to player center
+  POWERUP_MULTISHOT_DURATION:   8,      // seconds
+  POWERUP_MULTISHOT_ANGLE:      0.26,   // radians (~15°) for spread bullets
+  POWERUP_RAPIDFIRE_DURATION:   6,      // seconds
+  POWERUP_RAPIDFIRE_INTERVAL:   0.22,   // seconds between auto-shots
+  COLOR_POWERUP_MULTISHOT:      '#00f0ff',
+  COLOR_POWERUP_SHIELD:         '#00ff88',
+  COLOR_POWERUP_RAPIDFIRE:      '#ffaa00',
+
   // Particles
   PARTICLE_COUNT: 14,
   PARTICLE_SPEED_MIN: 60,
