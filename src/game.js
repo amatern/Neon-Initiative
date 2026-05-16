@@ -9,6 +9,7 @@ import { renderHUD }            from './hud.js';
 import { easterEggs }           from './easter-eggs.js';
 import { audio }               from './audio.js';
 import { createSealWave, getSealData, isSealWave } from './seal-waves.js';
+import { createPowerupPool, randomPowerupType } from './powerups.js';
 
 const STATE = { TITLE: 'title', PLAYING: 'playing', PAUSED: 'paused', GAME_OVER: 'game_over' };
 
@@ -38,6 +39,8 @@ export function createGame(canvas) {
   let defeatSeal         = null;
   let invincibilityTimer = 0;
   let shakeTimer         = 0;
+  const powerups         = createPowerupPool();
+  let   rapidFireTimer   = 0;
 
   function makeBanner(text) {
     const duration = CONFIG.WAVE_BANNER_DURATION / 1000;
@@ -64,6 +67,13 @@ export function createGame(canvas) {
   }
 
   function hitPlayer() {
+    if (player.hasShield()) {
+      player.consumeShield();
+      audio.shieldBreak();
+      particles.burst(player.x, player.y, '#00ff88', 20);
+      shakeTimer = 0.15;
+      return;
+    }
     particles.burst(player.x, player.y, player.color, 36);
     particles.burst(player.x, player.y, '#ffffff', 16);
     audio.playerHit();
@@ -85,6 +95,9 @@ export function createGame(canvas) {
     formation          = createFormation(wave);
     bullets.clear();
     enemyBullets.clear();
+    powerups.clear();
+    player.clearPowerup();
+    rapidFireTimer = 0;
     notifications.length = 0;
     banner = makeBanner('Roll for initiative!');
     easterEggs.onWaveStart(wave);
@@ -104,6 +117,7 @@ export function createGame(canvas) {
     }
     bullets.clear();
     enemyBullets.clear();
+    powerups.clear();
     if (seal) {
       banner = makeSealBanner(seal, 'start');
     } else if (isBoss) {
@@ -280,8 +294,27 @@ export function createGame(canvas) {
       if (input.wasPressed('Space')) {
         const dawnRef = formation.getMechanics?.();
         if (!dawnRef?.terrorActive) {
-          bullets.fire(player.x, player.y - player.height / 2);
+          const tip = player.y - player.height / 2;
+          if (player.getPowerup().type === 'multishot') {
+            bullets.fire(player.x, tip, 0);
+            bullets.fire(player.x, tip, -Math.tan(CONFIG.POWERUP_MULTISHOT_ANGLE) * CONFIG.BULLET_SPEED);
+            bullets.fire(player.x, tip,  Math.tan(CONFIG.POWERUP_MULTISHOT_ANGLE) * CONFIG.BULLET_SPEED);
+          } else {
+            bullets.fire(player.x, tip);
+          }
           audio.shoot();
+        }
+      }
+
+      if (player.getPowerup().type === 'rapidfire') {
+        rapidFireTimer -= dt;
+        if (rapidFireTimer <= 0) {
+          const dawnRef = formation.getMechanics?.();
+          if (!dawnRef?.terrorActive) {
+            bullets.fire(player.x, player.y - player.height / 2);
+            audio.shoot();
+          }
+          rapidFireTimer = CONFIG.POWERUP_RAPIDFIRE_INTERVAL;
         }
       }
 
@@ -294,6 +327,7 @@ export function createGame(canvas) {
       if (formation.wasDiveLaunched()) audio.diverLaunch();
       bullets.update(dt);
       enemyBullets.update(dt, player.x);
+      powerups.update(dt);
 
       // Collision: bullets vs. enemies (formation + divers)
       const hits = bullets.checkCollisions(formation.getEnemyRects());
@@ -307,6 +341,9 @@ export function createGame(canvas) {
             const killed = formation.kill(enemy.ref);
             if (killed) {
               particles.burst(enemy.x, enemy.y, enemy.color || CONFIG.COLOR_ENEMY);
+              if (Math.random() < CONFIG.POWERUP_DROP_CHANCE) {
+                powerups.spawn(enemy.x, enemy.y, randomPowerupType());
+              }
               if (roll === 20) {
                 score += CONFIG.SCORE_NAT20_BONUS;
                 particles.burst(enemy.x, enemy.y, CONFIG.COLOR_BANNER);
@@ -322,6 +359,9 @@ export function createGame(canvas) {
           const killed = formation.kill(enemy.ref);
           if (killed) {
             particles.burst(enemy.x, enemy.y, enemy.color || CONFIG.COLOR_ENEMY);
+            if (Math.random() < CONFIG.POWERUP_DROP_CHANCE) {
+              powerups.spawn(enemy.x, enemy.y, randomPowerupType());
+            }
 
             if (Math.random() < CONFIG.CRIT_CHANCE) {
               particles.burst(enemy.x, enemy.y, CONFIG.COLOR_CRIT, CONFIG.CRIT_PARTICLE_COUNT);
@@ -344,6 +384,13 @@ export function createGame(canvas) {
             }
           }
         }
+      }
+
+      const picked = powerups.checkPickup(player.getHitbox());
+      if (picked) {
+        player.activate(picked);
+        audio.powerupPickup();
+        if (picked === 'rapidfire') rapidFireTimer = CONFIG.POWERUP_RAPIDFIRE_INTERVAL;
       }
 
       // Wave cleared
@@ -416,6 +463,7 @@ export function createGame(canvas) {
       }
       bullets.render(ctx);
       enemyBullets.render(ctx);
+      powerups.render(ctx);
       particles.render(ctx);
 
       // Floating NAT roll notifications
@@ -438,7 +486,7 @@ export function createGame(canvas) {
       const mechRef      = formation.getMechanics?.();
       const gustActive   = mechRef?.gustActive   ?? false;
       const terrorActive = mechRef?.terrorActive ?? false;
-      renderHUD(ctx, { score, lives, wave, banner, chadActive: easterEggs.chadActive, highScore, gustActive, terrorActive });
+      renderHUD(ctx, { score, lives, wave, banner, chadActive: easterEggs.chadActive, highScore, gustActive, terrorActive, powerup: player.getPowerup() });
 
       if (state === STATE.PAUSED) {
         renderPause();

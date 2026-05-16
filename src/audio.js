@@ -85,4 +85,13 @@ export const audio = {
   nat20() {
     arpeggio([330, 440, 554, 659, 880], 0.08, 'square', 0.13, 0.15);
   },
+
+  powerupPickup() {
+    arpeggio([523, 659, 784], 0.08, 'sine', 0.15, 0.12);
+  },
+
+  shieldBreak() {
+    tone(300, 'sawtooth', 0.25, 0.2, 80);
+    noise(0.15, 0.14);
+  },
 };

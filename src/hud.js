@@ -1,4 +1,5 @@
 import { CONFIG } from './config.js';
+import { drawMultishotIcon, drawShieldIcon, drawRapidfireIcon } from './powerups.js';
 
 function drawD20Icon(ctx, x, y) {
   const s = 12;
@@ -23,7 +24,7 @@ function drawD20Icon(ctx, x, y) {
 }
 
 // banner: null | { text, timer, duration }  (timer in seconds, counts down)
-export function renderHUD(ctx, { score, lives, wave, banner, chadActive, highScore, gustActive, terrorActive }) {
+export function renderHUD(ctx, { score, lives, wave, banner, chadActive, highScore, gustActive, terrorActive, powerup }) {
   ctx.save();
 
   ctx.font        = 'bold 18px monospace';
@@ -135,6 +136,49 @@ export function renderHUD(ctx, { score, lives, wave, banner, chadActive, highSco
     ctx.shadowColor = '#ff2200';
     ctx.textAlign   = 'center';
     ctx.fillText('TERROR', CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT - 40);
+    ctx.restore();
+  }
+
+  if (powerup && powerup.type) {
+    const col    = powerup.type === 'multishot' ? CONFIG.COLOR_POWERUP_MULTISHOT
+                 : powerup.type === 'shield'    ? CONFIG.COLOR_POWERUP_SHIELD
+                 : CONFIG.COLOR_POWERUP_RAPIDFIRE;
+    const iconFn = powerup.type === 'multishot' ? drawMultishotIcon
+                 : powerup.type === 'shield'    ? drawShieldIcon
+                 : drawRapidfireIcon;
+    const iconX  = CONFIG.CANVAS_WIDTH - 155;
+    const iconY  = CONFIG.CANVAS_HEIGHT - 25;
+
+    ctx.save();
+    iconFn(ctx, iconX, iconY, 10);
+
+    if (powerup.type !== 'shield') {
+      const duration = powerup.type === 'multishot'
+        ? CONFIG.POWERUP_MULTISHOT_DURATION
+        : CONFIG.POWERUP_RAPIDFIRE_DURATION;
+      const frac  = Math.max(0, powerup.timer / duration);
+      const barX  = iconX + 18;
+      const barY  = iconY - 6;
+      const barW  = 120;
+      const barH  = 12;
+      ctx.strokeStyle = col;
+      ctx.lineWidth   = 1;
+      ctx.shadowBlur  = 4;
+      ctx.shadowColor = col;
+      ctx.strokeRect(barX, barY, barW, barH);
+      ctx.fillStyle   = col;
+      ctx.shadowBlur  = 6;
+      ctx.globalAlpha = 0.9;
+      ctx.fillRect(barX, barY, barW * frac, barH);
+    } else {
+      ctx.font         = 'bold 13px monospace';
+      ctx.fillStyle    = CONFIG.COLOR_POWERUP_SHIELD;
+      ctx.shadowBlur   = 6;
+      ctx.shadowColor  = CONFIG.COLOR_POWERUP_SHIELD;
+      ctx.textAlign    = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('SHIELD ACTIVE', iconX + 18, iconY);
+    }
     ctx.restore();
   }
 

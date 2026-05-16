@@ -9,6 +9,10 @@ export function createPlayer() {
     color:  CONFIG.COLOR_PLAYER,
   };
 
+  let powerupType  = null;
+  let powerupTimer = 0;
+  let shieldActive = false;
+
   return {
     get x()      { return s.x; },
     get y()      { return s.y; },
@@ -20,6 +24,14 @@ export function createPlayer() {
       if (input.isDown('ArrowLeft'))  s.x -= CONFIG.PLAYER_SPEED * dt;
       if (input.isDown('ArrowRight')) s.x += CONFIG.PLAYER_SPEED * dt;
       s.x = Math.max(s.width / 2, Math.min(CONFIG.CANVAS_WIDTH - s.width / 2, s.x));
+
+      if (powerupTimer > 0) {
+        powerupTimer -= dt;
+        if (powerupTimer <= 0) {
+          powerupType  = null;
+          powerupTimer = 0;
+        }
+      }
     },
 
     render(ctx) {
@@ -29,15 +41,28 @@ export function createPlayer() {
       ctx.strokeStyle = s.color;
       ctx.lineWidth   = 2;
       ctx.beginPath();
-      ctx.moveTo(s.x,               s.y - s.height / 2); // tip
-      ctx.lineTo(s.x + s.width / 2, s.y + s.height / 2); // bottom-right
-      ctx.lineTo(s.x - s.width / 2, s.y + s.height / 2); // bottom-left
+      ctx.moveTo(s.x,               s.y - s.height / 2);
+      ctx.lineTo(s.x + s.width / 2, s.y + s.height / 2);
+      ctx.lineTo(s.x - s.width / 2, s.y + s.height / 2);
       ctx.closePath();
       ctx.stroke();
       ctx.globalAlpha = 0.18;
       ctx.fillStyle   = s.color;
       ctx.fill();
       ctx.restore();
+
+      if (shieldActive) {
+        ctx.save();
+        ctx.strokeStyle = '#00ff88';
+        ctx.lineWidth   = 1.5;
+        ctx.shadowBlur  = 10;
+        ctx.shadowColor = '#00ff88';
+        ctx.globalAlpha = 0.7 + 0.3 * Math.sin(Date.now() / 150);
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.width * 0.8, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
     },
 
     getHitbox() {
@@ -50,6 +75,29 @@ export function createPlayer() {
 
     nudge(dx) {
       s.x = Math.max(s.width / 2, Math.min(CONFIG.CANVAS_WIDTH - s.width / 2, s.x + dx));
+    },
+
+    activate(type) {
+      powerupType  = type;
+      shieldActive = type === 'shield';
+      powerupTimer = type === 'multishot' ? CONFIG.POWERUP_MULTISHOT_DURATION
+                   : type === 'rapidfire' ? CONFIG.POWERUP_RAPIDFIRE_DURATION
+                   : 0;
+    },
+
+    hasShield()     { return shieldActive; },
+
+    consumeShield() {
+      shieldActive = false;
+      powerupType  = null;
+    },
+
+    getPowerup()    { return { type: powerupType, timer: powerupTimer }; },
+
+    clearPowerup()  {
+      powerupType  = null;
+      powerupTimer = 0;
+      shieldActive = false;
     },
   };
 }
