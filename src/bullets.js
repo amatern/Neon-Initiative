@@ -9,12 +9,13 @@ export function createBulletPool() {
 
   return {
     // x, y = tip of player ship (firing origin)
-    fire(x, y) {
-      bullets.push({ x, y });
+    fire(x, y, vx = 0) {
+      bullets.push({ x, y, vx });
     },
 
     update(dt) {
       for (let i = bullets.length - 1; i >= 0; i--) {
+        bullets[i].x += bullets[i].vx * dt;
         bullets[i].y -= CONFIG.BULLET_SPEED * dt;
         if (bullets[i].y < 0) bullets.splice(i, 1);
       }
