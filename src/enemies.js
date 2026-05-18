@@ -297,7 +297,7 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
           e.ey    = e.baseY;
           e.state = 'active';
         } else {
-          const step = CONFIG.ENTRY_LOCK_SPEED * dt;
+          const step = Math.min(CONFIG.ENTRY_LOCK_SPEED * dt, dist);
           e.ex += (dx / dist) * step;
           e.ey += (dy / dist) * step;
         }
@@ -428,11 +428,13 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
       const live = base.filter(e => e.alive);
       if (live.length === 0) return;
 
+      const active = allActive();
+
       // Advance entry animation while enemies are still settling in
-      if (!allActive()) updateEntry(dt);
+      if (!active) updateEntry(dt);
 
       // Sway — only once all enemies have locked into formation
-      if (allActive()) {
+      if (active) {
         groupOffsetX += swaySpeed * dir * dt;
         const nonDiving = live.filter(e => !e.diving);
         if (nonDiving.length > 0) {
@@ -449,7 +451,7 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
       }
 
       // Dive launch — only once all enemies have locked into formation
-      if (allActive()) {
+      if (active) {
         diveTimer -= dt;
         if (diveTimer <= 0) launchDive(playerX);
       }
