@@ -362,13 +362,15 @@ export function createGame(canvas) {
               if (Math.random() < CONFIG.POWERUP_DROP_CHANCE) {
                 powerups.spawn(enemy.x, enemy.y, randomPowerupType());
               }
+              const mult = stepCombo();
+              if (comboCount >= 2) addNotification('×' + mult.toFixed(1) + '!', enemy.x, enemy.y, CONFIG.COLOR_COMBO);
               if (roll === 20) {
-                score += CONFIG.SCORE_NAT20_BONUS;
+                score += CONFIG.SCORE_NAT20_BONUS * mult;
                 particles.burst(enemy.x, enemy.y, CONFIG.COLOR_BANNER);
                 addNotification('NAT 20!', enemy.x, enemy.y, CONFIG.COLOR_BANNER);
                 audio.nat20();
               } else {
-                score += enemy.score || CONFIG.SCORE_PER_ENEMY;
+                score += (enemy.score || CONFIG.SCORE_PER_ENEMY) * mult;
                 audio.enemyKill();
               }
             }
@@ -380,25 +382,27 @@ export function createGame(canvas) {
             if (Math.random() < CONFIG.POWERUP_DROP_CHANCE) {
               powerups.spawn(enemy.x, enemy.y, randomPowerupType());
             }
+            const mult = stepCombo();
+            if (comboCount >= 2) addNotification('×' + mult.toFixed(1) + '!', enemy.x, enemy.y, CONFIG.COLOR_COMBO);
 
             if (Math.random() < CONFIG.CRIT_CHANCE) {
               particles.burst(enemy.x, enemy.y, CONFIG.COLOR_CRIT, CONFIG.CRIT_PARTICLE_COUNT);
               addNotification(`+${CONFIG.CRIT_SCORE} CRIT!`, enemy.x, enemy.y, CONFIG.COLOR_CRIT);
               audio.critHit();
-              score += CONFIG.CRIT_SCORE;
+              score += CONFIG.CRIT_SCORE * mult;
               for (const adj of formation.getEnemyRects()) {
                 const dx = adj.x - enemy.x;
                 const dy = adj.y - enemy.y;
                 if (Math.sqrt(dx * dx + dy * dy) <= CONFIG.CRIT_RADIUS) {
                   if (formation.kill(adj.ref)) {
                     particles.burst(adj.x, adj.y, CONFIG.COLOR_CRIT, 8);
-                    score += adj.score || CONFIG.SCORE_PER_ENEMY;
+                    score += (adj.score || CONFIG.SCORE_PER_ENEMY) * mult;
                   }
                 }
               }
             } else {
               audio.enemyKill();
-              score += enemy.score || CONFIG.SCORE_PER_ENEMY;
+              score += (enemy.score || CONFIG.SCORE_PER_ENEMY) * mult;
             }
           }
         }
