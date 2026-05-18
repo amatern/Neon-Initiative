@@ -133,6 +133,13 @@ export const CONFIG = {
   ENTRY_TRAVEL_TIME:  1.4,    // seconds to traverse the full conga Bezier
   ENTRY_LOCK_SPEED:   280,    // px/s flying from peel-off point to formation slot
 
+  // Combo multiplier
+  COMBO_WINDOW: 2.0,    // seconds between kills to keep streak alive
+  COMBO_BASE:   1.2,    // multiplier at comboCount = 1
+  COMBO_STEP:   0.4,    // multiplier increment per additional kill
+  COMBO_MAX:    4.0,    // maximum multiplier (reached at comboCount = 8)
+  COLOR_COMBO:  '#ffaa00',
+
   // Particles
   PARTICLE_COUNT: 14,
   PARTICLE_SPEED_MIN: 60,
