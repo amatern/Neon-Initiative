@@ -213,6 +213,48 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
     ey:         baseY,
   }));
 
+  // Conga entry animation — normal waves only
+  const doEntry = randomize;
+  let cp0, cp1, cp2, cp3;
+  if (doEntry) {
+    const W = CONFIG.CANVAS_WIDTH, H = CONFIG.CANVAS_HEIGHT;
+    const fromLeft = wave % 2 === 0;
+    if (fromLeft) {
+      cp0 = { x: -20,      y: H * 0.38 };
+      cp1 = { x: W * 0.25, y: H * 0.05 };
+      cp2 = { x: W * 0.75, y: H * 0.05 };
+      cp3 = { x: W + 20,   y: H * 0.38 };
+    } else {
+      cp0 = { x: W + 20,   y: H * 0.38 };
+      cp1 = { x: W * 0.75, y: H * 0.05 };
+      cp2 = { x: W * 0.25, y: H * 0.05 };
+      cp3 = { x: -20,      y: H * 0.38 };
+    }
+
+    // Pre-sample the path to compute each enemy's peel-off t value
+    const SAMPLES = 60;
+    const pathSamples = Array.from({ length: SAMPLES }, (_, i) =>
+      bezierPoint(i / (SAMPLES - 1), cp0, cp1, cp2, cp3)
+    );
+
+    base.forEach((e, i) => {
+      e.state      = 'entering';
+      e.entryDelay = i * CONFIG.ENTRY_STAGGER;
+      e.entryT     = 0;
+      e.ex         = cp0.x;
+      e.ey         = cp0.y;
+
+      // Find the path sample closest to this enemy's formation slot
+      let bestT = 0, bestDist = Infinity;
+      pathSamples.forEach((pt, si) => {
+        const dx = pt.x - e.baseX, dy = pt.y - e.baseY;
+        const d  = dx * dx + dy * dy;
+        if (d < bestDist) { bestDist = d; bestT = si / (SAMPLES - 1); }
+      });
+      e.peelT = bestT;
+    });
+  }
+
   let groupOffsetX = 0;
   let dir          = 1;
   const swaySpeed  = SWAY_BASE + (wave - 1) * SWAY_INC;
@@ -226,6 +268,41 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
 
   function nextDiveTimer() {
     return CONFIG.DIVE_INTERVAL + (Math.random() * 2 - 1) * CONFIG.DIVE_INTERVAL_VARIANCE;
+  }
+
+  function allActive() {
+    if (!doEntry) return true;
+    return base.every(e => !e.alive || e.state === 'active');
+  }
+
+  function updateEntry(dt) {
+    for (const e of base) {
+      if (!e.alive) continue;
+      if (e.state === 'entering') {
+        if (e.entryDelay > 0) {
+          e.entryDelay -= dt;
+        } else {
+          e.entryT    = Math.min(1, e.entryT + dt / CONFIG.ENTRY_TRAVEL_TIME);
+          const pt    = bezierPoint(e.entryT, cp0, cp1, cp2, cp3);
+          e.ex        = pt.x;
+          e.ey        = pt.y;
+          if (e.entryT >= e.peelT) e.state = 'locking';
+        }
+      } else if (e.state === 'locking') {
+        const dx   = e.baseX - e.ex;
+        const dy   = e.baseY - e.ey;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 4) {
+          e.ex    = e.baseX;
+          e.ey    = e.baseY;
+          e.state = 'active';
+        } else {
+          const step = CONFIG.ENTRY_LOCK_SPEED * dt;
+          e.ex += (dx / dist) * step;
+          e.ey += (dy / dist) * step;
+        }
+      }
+    }
   }
 
   function launchDive(playerX) {
@@ -309,7 +386,13 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
     getEnemyRects() {
       const rects = base
         .filter(e => e.alive && !e.diving)
-        .map(e => ({ x: actualX(e), y: actualY(e), hw: CONFIG.ENEMY_HITBOX, hh: CONFIG.ENEMY_HITBOX, ref: e }));
+        .map(e => ({
+          x:  e.state === 'active' ? actualX(e) : e.ex,
+          y:  e.state === 'active' ? actualY(e) : e.ey,
+          hw: CONFIG.ENEMY_HITBOX,
+          hh: CONFIG.ENEMY_HITBOX,
+          ref: e,
+        }));
 
       for (const d of divers) {
         rects.push({ x: d.x, y: d.y, hw: CONFIG.ENEMY_HITBOX, hh: CONFIG.ENEMY_HITBOX, ref: d.ref });
@@ -345,24 +428,31 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
       const live = base.filter(e => e.alive);
       if (live.length === 0) return;
 
-      // Sway — driven by non-diving enemies only
-      groupOffsetX += swaySpeed * dir * dt;
-      const nonDiving = live.filter(e => !e.diving);
-      if (nonDiving.length > 0) {
-        const leftmost  = Math.min(...nonDiving.map(e => actualX(e)));
-        const rightmost = Math.max(...nonDiving.map(e => actualX(e)));
-        if (dir ===  1 && rightmost + CONFIG.ENEMY_SIZE >= CONFIG.CANVAS_WIDTH - CONFIG.ENEMY_EDGE_PADDING) dir = -1;
-        if (dir === -1 && leftmost  - CONFIG.ENEMY_SIZE <= CONFIG.ENEMY_EDGE_PADDING)                       dir =  1;
+      // Advance entry animation while enemies are still settling in
+      if (!allActive()) updateEntry(dt);
+
+      // Sway — only once all enemies have locked into formation
+      if (allActive()) {
+        groupOffsetX += swaySpeed * dir * dt;
+        const nonDiving = live.filter(e => !e.diving);
+        if (nonDiving.length > 0) {
+          const leftmost  = Math.min(...nonDiving.map(e => actualX(e)));
+          const rightmost = Math.max(...nonDiving.map(e => actualX(e)));
+          if (dir ===  1 && rightmost + CONFIG.ENEMY_SIZE >= CONFIG.CANVAS_WIDTH - CONFIG.ENEMY_EDGE_PADDING) dir = -1;
+          if (dir === -1 && leftmost  - CONFIG.ENEMY_SIZE <= CONFIG.ENEMY_EDGE_PADDING)                       dir =  1;
+        }
       }
 
-      // Count down decoy flash timers
+      // Count down decoy flash timers — always
       for (const e of base) {
         if (e.flashTimer > 0) e.flashTimer -= dt;
       }
 
-      // Dive launch
-      diveTimer -= dt;
-      if (diveTimer <= 0) launchDive(playerX);
+      // Dive launch — only once all enemies have locked into formation
+      if (allActive()) {
+        diveTimer -= dt;
+        if (diveTimer <= 0) launchDive(playerX);
+      }
 
       // Update active divers
       for (let i = divers.length - 1; i >= 0; i--) {
@@ -383,7 +473,9 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
         const drawFn = e.draw  ?? drawEnemy;
         ctx.strokeStyle = col;
         ctx.shadowColor = col;
-        drawFn(ctx, actualX(e), actualY(e), CONFIG.ENEMY_SIZE);
+        const px = e.state === 'active' ? actualX(e) : e.ex;
+        const py = e.state === 'active' ? actualY(e) : e.ey;
+        drawFn(ctx, px, py, CONFIG.ENEMY_SIZE);
         ctx.stroke();
         ctx.globalAlpha = e.isDecoy ? 0.06 : 0.12;
         ctx.fillStyle   = col;
