@@ -187,24 +187,31 @@ export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
     ? CONFIG.WAVE_PALETTES[Math.floor((wave - 1) / 5) % CONFIG.WAVE_PALETTES.length]
     : null;
 
-  const formationWidth = (COLS - 1) * SPACING_X;
-  const startX         = (CONFIG.CANVAS_WIDTH - formationWidth) / 2;
+  // Normal waves use random layouts; special waves (seal/boss) keep the grid via opts.
+  const positions = randomize
+    ? pickLayout(wave)
+    : (() => {
+        const fw = (COLS - 1) * SPACING_X;
+        const sx = (CONFIG.CANVAS_WIDTH - fw) / 2;
+        const pos = [];
+        for (let r = 0; r < rows; r++)
+          for (let c = 0; c < COLS; c++)
+            pos.push({ baseX: sx + c * SPACING_X, baseY: TOP_MARGIN + r * SPACING_Y });
+        return pos;
+      })();
 
-  const base = [];
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < COLS; col++) {
-      base.push({
-        baseX:      startX + col * SPACING_X,
-        baseY:      TOP_MARGIN + row * SPACING_Y,
-        alive:      true,
-        diving:     false,
-        isDecoy:    Math.random() < DECOY_CHANCE,
-        flashTimer: 0,
-        draw:       randomize ? NORMAL_SHAPES[Math.floor(Math.random() * NORMAL_SHAPES.length)] : null,
-        color:      randomize ? palette[Math.floor(Math.random() * palette.length)] : null,
-      });
-    }
-  }
+  const base = positions.map(({ baseX, baseY }) => ({
+    baseX, baseY,
+    alive:      true,
+    diving:     false,
+    isDecoy:    Math.random() < DECOY_CHANCE,
+    flashTimer: 0,
+    draw:       randomize ? NORMAL_SHAPES[Math.floor(Math.random() * NORMAL_SHAPES.length)] : null,
+    color:      randomize ? palette[Math.floor(Math.random() * palette.length)] : null,
+    state:      'active',
+    ex:         baseX,
+    ey:         baseY,
+  }));
 
   let groupOffsetX = 0;
   let dir          = 1;
