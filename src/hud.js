@@ -24,7 +24,7 @@ function drawD20Icon(ctx, x, y) {
 }
 
 // banner: null | { text, timer, duration }  (timer in seconds, counts down)
-export function renderHUD(ctx, { score, lives, wave, banner, chadActive, highScore, gustActive, terrorActive, powerup }) {
+export function renderHUD(ctx, { score, lives, wave, banner, chadActive, highScore, gustActive, terrorActive, powerup, combo }) {
   ctx.save();
 
   ctx.font        = 'bold 18px monospace';
@@ -179,6 +179,41 @@ export function renderHUD(ctx, { score, lives, wave, banner, chadActive, highSco
       ctx.textBaseline = 'middle';
       ctx.fillText('SHIELD ACTIVE', iconX + 18, iconY);
     }
+    ctx.restore();
+  }
+
+  if (combo && combo.count > 0) {
+    const mult = Math.min(CONFIG.COMBO_BASE + (combo.count - 1) * CONFIG.COMBO_STEP, CONFIG.COMBO_MAX);
+    const col  = CONFIG.COLOR_COMBO;
+    ctx.save();
+
+    // Multiplier text: ×2.4
+    ctx.textAlign    = 'left';
+    ctx.font         = 'bold 14px monospace';
+    ctx.fillStyle    = col;
+    ctx.shadowBlur   = 10;
+    ctx.shadowColor  = col;
+    ctx.fillText('×' + mult.toFixed(1), 14, CONFIG.CANVAS_HEIGHT - 22);
+
+    // COMBO label
+    ctx.font         = '9px monospace';
+    ctx.fillStyle    = 'rgba(255,170,0,0.55)';
+    ctx.shadowBlur   = 0;
+    ctx.fillText('COMBO', 14, CONFIG.CANVAS_HEIGHT - 10);
+
+    // Timer bar
+    const frac = Math.max(0, combo.timer / CONFIG.COMBO_WINDOW);
+    const barX = 55, barY = CONFIG.CANVAS_HEIGHT - 28, barW = 80, barH = 8;
+    ctx.strokeStyle = col;
+    ctx.lineWidth   = 1;
+    ctx.shadowBlur  = 3;
+    ctx.shadowColor = col;
+    ctx.strokeRect(barX, barY, barW, barH);
+    ctx.fillStyle   = col;
+    ctx.globalAlpha = 0.85;
+    ctx.shadowBlur  = 5;
+    ctx.fillRect(barX, barY, barW * frac, barH);
+
     ctx.restore();
   }
 
