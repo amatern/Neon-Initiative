@@ -63,6 +63,112 @@ function drawCross(ctx, x, y, s) {
 
 const NORMAL_SHAPES = [drawHexagon, drawTriangle, drawDiamond, drawShield, drawArrow, drawCross];
 
+function bezierPoint(t, p0, p1, p2, p3) {
+  const u = 1 - t;
+  return {
+    x: u*u*u*p0.x + 3*u*u*t*p1.x + 3*u*t*t*p2.x + t*t*t*p3.x,
+    y: u*u*u*p0.y + 3*u*u*t*p1.y + 3*u*t*t*p2.y + t*t*t*p3.y,
+  };
+}
+
+function layoutGrid(wave) {
+  const cols = CONFIG.ENEMY_COLS, rows = CONFIG.ENEMY_ROWS;
+  const sx = CONFIG.ENEMY_SPACING_X, sy = CONFIG.ENEMY_SPACING_Y;
+  const startX = (CONFIG.CANVAS_WIDTH - (cols - 1) * sx) / 2;
+  const pos = [];
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++)
+      pos.push({ baseX: startX + c * sx, baseY: CONFIG.ENEMY_TOP_MARGIN + r * sy });
+  return pos;
+}
+
+function layoutDiamond(wave) {
+  const cx = CONFIG.CANVAS_WIDTH / 2;
+  const sx = CONFIG.ENEMY_SPACING_X, sy = CONFIG.ENEMY_SPACING_Y;
+  const top = CONFIG.ENEMY_TOP_MARGIN;
+  const widths = [3, 5, 7, 5, 3];
+  const pos = [];
+  widths.forEach((w, r) => {
+    const half = (w - 1) / 2;
+    for (let c = 0; c < w; c++)
+      pos.push({ baseX: cx + (c - half) * sx, baseY: top + r * sy });
+  });
+  return pos; // 23 enemies
+}
+
+function layoutArc(wave) {
+  const cx = CONFIG.CANVAS_WIDTH / 2;
+  const cy = CONFIG.ENEMY_TOP_MARGIN + 70;
+  const pos = [];
+  // Outer arc: 11 enemies along a wide arch (peaks upward in the middle)
+  for (let i = 0; i < 11; i++) {
+    const a = Math.PI + Math.PI * i / 10;
+    pos.push({ baseX: cx + 260 * Math.cos(a), baseY: cy + 60 * Math.sin(a) });
+  }
+  // Inner arc: 9 enemies, 50px lower, narrower
+  const cy2 = cy + 50;
+  for (let i = 0; i < 9; i++) {
+    const a = Math.PI + Math.PI * i / 8;
+    pos.push({ baseX: cx + 180 * Math.cos(a), baseY: cy2 + 50 * Math.sin(a) });
+  }
+  return pos; // 20 enemies
+}
+
+function layoutStagger(wave) {
+  const sx = CONFIG.ENEMY_SPACING_X, sy = CONFIG.ENEMY_SPACING_Y;
+  const top = CONFIG.ENEMY_TOP_MARGIN;
+  const evenStartX = (CONFIG.CANVAS_WIDTH - 6 * sx) / 2;
+  const oddStartX  = evenStartX + sx / 2;
+  const pos = [];
+  for (let r = 0; r < 4; r++) {
+    const isOdd  = r % 2 === 1;
+    const count  = isOdd ? 6 : 7;
+    const startX = isOdd ? oddStartX : evenStartX;
+    for (let c = 0; c < count; c++)
+      pos.push({ baseX: startX + c * sx, baseY: top + r * sy });
+  }
+  return pos; // 26 enemies
+}
+
+function layoutClusters(wave) {
+  const W = CONFIG.CANVAS_WIDTH, top = CONFIG.ENEMY_TOP_MARGIN;
+  const step = 44;
+  const centers = [
+    { cx: W * 0.22, cy: top + 50 },
+    { cx: W * 0.50, cy: top + 50 },
+    { cx: W * 0.78, cy: top + 50 },
+    { cx: W * 0.35, cy: top + 130 },
+    { cx: W * 0.65, cy: top + 130 },
+  ];
+  const offsets = [[0,0],[-1,0],[1,0],[0,-1],[0,1]];
+  const pos = [];
+  centers.forEach(({ cx, cy }) =>
+    offsets.forEach(([dc, dr]) =>
+      pos.push({ baseX: cx + dc * step, baseY: cy + dr * step })
+    )
+  );
+  return pos; // 25 enemies
+}
+
+function layoutSpiral(wave) {
+  const cx = CONFIG.CANVAS_WIDTH / 2;
+  const cy = CONFIG.ENEMY_TOP_MARGIN + 120;
+  const n  = 20;
+  const pos = [];
+  for (let i = 0; i < n; i++) {
+    const t     = i / n;
+    const angle = t * Math.PI * 3.5;
+    const r     = 15 + t * 95;
+    pos.push({ baseX: cx + r * Math.cos(angle), baseY: cy + r * Math.sin(angle) });
+  }
+  return pos;
+}
+
+const LAYOUTS = [layoutGrid, layoutDiamond, layoutArc, layoutStagger, layoutClusters, layoutSpiral];
+
+function pickLayout(wave) {
+  return LAYOUTS[Math.floor(Math.random() * LAYOUTS.length)](wave);
+}
 export function createFormation(wave, rows = CONFIG.ENEMY_ROWS, opts = {}) {
   const COLS       = opts.cols          ?? CONFIG.ENEMY_COLS;
   const SPACING_X  = opts.spacingX      ?? CONFIG.ENEMY_SPACING_X;
