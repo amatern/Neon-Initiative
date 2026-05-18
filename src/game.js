@@ -71,6 +71,8 @@ export function createGame(canvas) {
       newBest = true;
     }
     defeatSeal = getSealData(wave);
+    comboCount = 0;
+    comboTimer = 0;
     state = STATE.GAME_OVER;
   }
 
