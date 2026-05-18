@@ -41,6 +41,8 @@ export function createGame(canvas) {
   let shakeTimer         = 0;
   const powerups         = createPowerupPool();
   let   rapidFireTimer   = 0;
+  let comboCount = 0;   // kills in current streak; 0 = inactive
+  let comboTimer = 0;   // seconds remaining; counts down each frame
 
   function makeBanner(text) {
     const duration = CONFIG.WAVE_BANNER_DURATION / 1000;
@@ -54,6 +56,12 @@ export function createGame(canvas) {
 
   function addNotification(text, x, y, color) {
     notifications.push({ text, x, y, vy: -60, color, timer: 1.5, maxTimer: 1.5 });
+  }
+
+  function stepCombo() {
+    comboCount++;
+    comboTimer = CONFIG.COMBO_WINDOW;
+    return Math.min(CONFIG.COMBO_BASE + (comboCount - 1) * CONFIG.COMBO_STEP, CONFIG.COMBO_MAX);
   }
 
   function triggerGameOver() {
@@ -98,6 +106,8 @@ export function createGame(canvas) {
     powerups.clear();
     player.clearPowerup();
     rapidFireTimer = 0;
+    comboCount = 0;
+    comboTimer = 0;
     notifications.length = 0;
     banner = makeBanner('Roll for initiative!');
     easterEggs.onWaveStart(wave);
@@ -126,6 +136,8 @@ export function createGame(canvas) {
       banner = makeBanner('Roll for initiative!');
     }
     easterEggs.onWaveStart(wave);
+    comboCount = 0;
+    comboTimer = 0;
   }
 
   function renderTitle() {
@@ -288,6 +300,10 @@ export function createGame(canvas) {
 
       if (invincibilityTimer > 0) invincibilityTimer -= dt;
       if (shakeTimer > 0) shakeTimer = Math.max(0, shakeTimer - dt);
+      if (comboTimer > 0) {
+        comboTimer -= dt;
+        if (comboTimer <= 0) { comboTimer = 0; comboCount = 0; }
+      }
 
       player.update(dt, input);
 
@@ -486,7 +502,7 @@ export function createGame(canvas) {
       const mechRef      = formation.getMechanics?.();
       const gustActive   = mechRef?.gustActive   ?? false;
       const terrorActive = mechRef?.terrorActive ?? false;
-      renderHUD(ctx, { score, lives, wave, banner, chadActive: easterEggs.chadActive, highScore, gustActive, terrorActive, powerup: player.getPowerup() });
+      renderHUD(ctx, { score, lives, wave, banner, chadActive: easterEggs.chadActive, highScore, gustActive, terrorActive, powerup: player.getPowerup(), combo: { count: comboCount, timer: comboTimer } });
 
       if (state === STATE.PAUSED) {
         renderPause();
