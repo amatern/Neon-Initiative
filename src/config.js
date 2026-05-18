@@ -128,6 +128,11 @@ export const CONFIG = {
   COLOR_POWERUP_SHIELD:         '#00ff88',
   COLOR_POWERUP_RAPIDFIRE:      '#ffaa00',
 
+  // Formation entry animation
+  ENTRY_STAGGER:      0.08,   // seconds between each enemy's launch onto the conga path
+  ENTRY_TRAVEL_TIME:  1.4,    // seconds to traverse the full conga Bezier
+  ENTRY_LOCK_SPEED:   280,    // px/s flying from peel-off point to formation slot
+
   // Particles
   PARTICLE_COUNT: 14,
   PARTICLE_SPEED_MIN: 60,
